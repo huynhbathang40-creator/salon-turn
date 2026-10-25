@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import {
   Gem, Calendar, CheckCircle2, AlertTriangle, Plus, Pencil, Trash2, X, Crown, Star,
-  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2,
+  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical,
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
+import SortableList from "./SortableList.jsx";
 
-function moveItem(list, index, direction) {
+// Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
+function moveTo(list, id, overId) {
+  const from = list.indexOf(id);
+  const to = list.indexOf(overId);
+  if (from < 0 || to < 0 || from === to) return list;
   const result = [...list];
-  const destination = index + direction;
-  if (destination < 0 || destination >= result.length) return result;
-  [result[index], result[destination]] = [result[destination], result[index]];
+  result.splice(from, 1);
+  result.splice(to, 0, id);
   return result;
 }
 
 const formatTime = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const formatDate = (t) => new Date(t).toLocaleDateString();
 
-const arrowBtn = "w-8 h-8 bg-white border border-brand-borderLight rounded-lg text-xs font-bold disabled:opacity-30";
 const callBtn = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-2 rounded-xl transition shadow-sm active:scale-95";
 
 export default function App() {
@@ -27,7 +30,6 @@ export default function App() {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
-  const [editingOrder, setEditingOrder] = useState(false);
   const [confirmNewDay, setConfirmNewDay] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -95,8 +97,8 @@ export default function App() {
   }
 
   const removeFromStandby = (id) => setData((p) => ({ ...p, standby: p.standby.filter((x) => x !== id) }));
-  const moveStandby = (i, dir) => setData((p) => ({ ...p, standby: moveItem(p.standby, i, dir) }));
-  const moveTurnPosition = (i, dir) => setData((p) => ({ ...p, turnPosition: moveItem(p.turnPosition, i, dir) }));
+  const moveStandby = (id, overId) => setData((p) => ({ ...p, standby: moveTo(p.standby, id, overId) }));
+  const moveTurn = (id, overId) => setData((p) => ({ ...p, turnPosition: moveTo(p.turnPosition, id, overId) }));
   const toggleStar = (id) =>
     setData((p) => ({
       ...p,
@@ -144,7 +146,6 @@ export default function App() {
 
   function startNewDay() {
     store.newDay();
-    setEditingOrder(false);
     setConfirmNewDay(false);
     notify("New day started.");
   }
@@ -303,105 +304,25 @@ export default function App() {
               )}
             </section>
 
-            {/* 2. STANDBY */}
-            <section className="bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
-              <div className="flex items-center justify-between pb-4 border-b border-brand-borderLight">
-                <div>
-                  <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" /> 2. Standby Queue
-                  </h2>
-                  <p className="text-xs text-brand-softSlate mt-0.5">Secondary waiting queue</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800">
-                    {data.standby.length} Waiting
-                  </span>
-                  <button
-                    onClick={() => setData((p) => ({ ...p, standbyVisible: !p.standbyVisible }))}
-                    className="text-xs text-brand-softSlate underline px-1 py-2"
-                  >
-                    {data.standbyVisible ? "Hide" : "Show"}
-                  </button>
-                </div>
-              </div>
-
-              {data.standbyVisible && (
-                <div className="mt-5 space-y-4">
-                  {data.standby.length === 0 ? (
-                    <div className="p-6 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight text-brand-softSlate text-xs">
-                      Standby queue is currently empty.
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
-                      {activeStandby.map((tech, index) => (
-                        <div key={tech.id} className="p-3.5 bg-brand-warmIvory/60 border border-brand-borderLight rounded-2xl flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="w-6 h-6 shrink-0 rounded-lg bg-brand-lightGold text-brand-gold font-bold text-xs flex items-center justify-center border border-brand-borderGold/50">
-                              {index + 1}
-                            </span>
-                            <span className="font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button disabled={index === 0} onClick={() => moveStandby(index, -1)} className={arrowBtn}>↑</button>
-                            <button disabled={index === data.standby.length - 1} onClick={() => moveStandby(index, 1)} className={arrowBtn}>↓</button>
-                            <button onClick={() => callTechnician(tech.id, true)} className={callBtn + " ml-1"}>CALL</button>
-                            <button onClick={() => removeFromStandby(tech.id)} className="px-2 py-2 text-rose-600 rounded-lg" aria-label="Remove from standby">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {availableForStandby.length > 0 && (
-                    <div className="pt-3 border-t border-brand-borderLight">
-                      <p className="text-xs text-brand-softSlate mb-2 font-medium">Add technician to Standby:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {availableForStandby.map((tech) => (
-                          <button
-                            key={tech.id}
-                            onClick={() => addToStandby(tech.id)}
-                            className="px-3 py-2 bg-brand-warmIvory border border-brand-borderLight rounded-xl text-xs font-semibold text-brand-charcoal"
-                          >
-                            + {tech.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
           </div>
 
-          {/* 3. LIVE TURN POSITION */}
-          <div className="space-y-8">
-            <section className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-brand-borderGold/70 shadow-md relative overflow-hidden">
+          {/* 2. LIVE TURN POSITION (Standby on top = ready to be called first) */}
+          <div className="space-y-8 order-first lg:order-none">
+            <section className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-brand-borderGold/70 shadow-md relative">
               <div className="flex items-center justify-between pb-4 border-b border-brand-borderLight">
                 <div>
                   <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                    <Crown size={17} className="text-brand-gold" /> 3. Live Turn Position
+                    <Crown size={17} className="text-brand-gold" /> Live Turn Position
                   </h2>
-                  <p className="text-xs text-brand-softSlate mt-0.5">Active rotation order for floor manager</p>
+                  <p className="text-xs text-brand-softSlate mt-0.5">Hold a name, then drag to move it</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-brand-lightGold border border-brand-borderGold text-xs font-bold text-brand-gold">
-                    {data.turnPosition.length} Active
-                  </span>
-                  <button
-                    onClick={() => setEditingOrder(!editingOrder)}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                      editingOrder ? "bg-brand-gold text-white" : "bg-brand-warmIvory text-brand-charcoal border border-brand-borderLight"
-                    }`}
-                  >
-                    {editingOrder ? "Done" : "Reorder"}
-                  </button>
-                </div>
+                <span className="px-3 py-1 rounded-full bg-brand-lightGold border border-brand-borderGold text-xs font-bold text-brand-gold">
+                  {data.standby.length + data.turnPosition.length} Active
+                </span>
               </div>
 
               {starredInTurn.length > 0 && (
-                <div className="priority-banner my-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-500/10 border-2 border-brand-gold text-center">
+                <div className="priority-banner mt-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-500/10 border-2 border-brand-gold text-center">
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <Star size={14} className="text-brand-gold fill-brand-gold animate-bounce" />
                     <span className="font-serif font-bold text-brand-gold text-xs uppercase tracking-widest">Priority Technicians</span>
@@ -413,69 +334,132 @@ export default function App() {
                 </div>
               )}
 
-              {data.turnPosition.length === 0 ? (
-                <div className="my-6 p-10 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight">
+              {/* READY / STANDBY */}
+              <div className="mt-5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3">
+                <div className="flex items-center justify-between px-1 pb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Ready · Standby
+                  </span>
+                  <span className="text-xs font-semibold text-emerald-800">{activeStandby.length} ready</span>
+                </div>
+
+                {activeStandby.length === 0 ? (
+                  <p className="text-xs text-emerald-900/60 text-center py-3">No one on standby. Tap a name below to add.</p>
+                ) : (
+                  <SortableList
+                    ids={activeStandby.map((t) => t.id)}
+                    onReorder={moveStandby}
+                    className="flex flex-col gap-2"
+                  >
+                    {(id, index) => {
+                      const tech = getTechnician(id);
+                      return (
+                        <div className="p-3 bg-white border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <GripVertical size={16} className="text-slate-300 shrink-0" />
+                            <span className="w-7 h-7 shrink-0 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
+                              S{index + 1}
+                            </span>
+                            <span className="font-bold text-brand-charcoal text-base truncate">{tech.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => callTechnician(tech.id, true)} className={callBtn}>CALL</button>
+                            <button onClick={() => removeFromStandby(tech.id)} className="p-2 text-rose-600 rounded-lg" aria-label="Remove from standby">
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </SortableList>
+                )}
+
+                {availableForStandby.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-3 mt-2 border-t border-emerald-200/70">
+                    {availableForStandby.map((tech) => (
+                      <button
+                        key={tech.id}
+                        onClick={() => addToStandby(tech.id)}
+                        className="px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900"
+                      >
+                        + {tech.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* TURN ORDER */}
+              <div className="flex items-center justify-between px-1 pt-5 pb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-softSlate">Turn order</span>
+                <span className="text-xs font-semibold text-brand-softSlate">{activeTurn.length} in queue</span>
+              </div>
+
+              {activeTurn.length === 0 ? (
+                <div className="p-8 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight">
                   <UserRound size={30} className="text-brand-gold/40 mx-auto mb-2" />
                   <p className="font-serif text-base font-semibold text-brand-charcoal">Queue is Empty</p>
-                  <p className="text-xs text-brand-softSlate mt-1">Press CALL in Nail Techs or Standby to dispatch to queue.</p>
+                  <p className="text-xs text-brand-softSlate mt-1">Press CALL to dispatch to queue.</p>
                 </div>
               ) : (
-                <div className="my-5 flex flex-col gap-3 w-full max-h-[520px] overflow-y-auto pr-1">
-                  {activeTurn.map((tech, index) => {
+                <SortableList
+                  ids={activeTurn.map((t) => t.id)}
+                  onReorder={moveTurn}
+                  className="flex flex-col gap-2.5 w-full"
+                >
+                  {(id, index) => {
+                    const tech = getTechnician(id);
                     const isStarred = data.starredIds.includes(tech.id);
                     return (
                       <div
-                        key={tech.id}
-                        className={`w-full p-4 rounded-2xl border transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        className={`w-full p-3 sm:p-4 rounded-2xl border flex items-center justify-between gap-2 ${
                           isStarred
-                            ? "bg-amber-500/10 border-brand-gold shadow-sm ring-1 ring-brand-gold/30"
+                            ? "bg-amber-50 border-brand-gold ring-1 ring-brand-gold/30"
                             : index === 0
-                            ? "bg-brand-lightGold/60 border-brand-borderGold shadow-sm"
-                            : "bg-brand-warmIvory/60 border-brand-borderLight"
+                            ? "bg-brand-lightGold border-brand-borderGold"
+                            : "bg-brand-warmIvory border-brand-borderLight"
                         }`}
                       >
-                        <div className="flex items-center gap-3.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <GripVertical size={16} className="text-slate-300 shrink-0" />
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-serif font-bold text-sm ${
+                            className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center font-serif font-bold text-sm ${
                               index === 0 ? "bg-brand-gold text-white shadow-sm" : "bg-white text-brand-charcoal border border-brand-borderLight"
                             }`}
                           >
                             #{index + 1}
                           </div>
-                          <div className="font-bold text-brand-charcoal text-base flex items-center gap-2">
-                            {tech.name}
-                            {isStarred && <span className="text-brand-gold font-black">★</span>}
+                          <div className="min-w-0">
+                            <div className="font-bold text-brand-charcoal text-base flex items-center gap-1.5">
+                              <span className="truncate">{tech.name}</span>
+                              {isStarred && <span className="text-brand-gold font-black">★</span>}
+                            </div>
                             {index === 0 && (
                               <span className="text-[10px] uppercase tracking-wider font-bold bg-brand-gold text-white px-2 py-0.5 rounded-full">Next Up</span>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             onClick={() => toggleStar(tech.id)}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold transition ${
+                            className={`w-9 h-9 rounded-xl text-base font-bold flex items-center justify-center ${
                               isStarred ? "bg-brand-gold text-white shadow-sm" : "bg-white border border-brand-borderLight text-brand-softSlate"
                             }`}
+                            aria-label="Priority"
                           >
-                            {isStarred ? "★ Priority" : "☆ Priority"}
+                            {isStarred ? "★" : "☆"}
                           </button>
-                          {editingOrder && (
-                            <div className="flex items-center gap-1">
-                              <button disabled={index === 0} onClick={() => moveTurnPosition(index, -1)} className={arrowBtn}>↑</button>
-                              <button disabled={index === data.turnPosition.length - 1} onClick={() => moveTurnPosition(index, 1)} className={arrowBtn}>↓</button>
-                            </div>
-                          )}
                           <button onClick={() => callTechnician(tech.id)} className={callBtn + " px-4"}>CALL</button>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  }}
+                </SortableList>
               )}
 
-              <p className="text-[11px] text-brand-softSlate italic text-center pt-2 border-t border-brand-borderLight">
-                Marking with priority star (★) alerts the floor manager without auto-changing queue order.
+              <p className="text-[11px] text-brand-softSlate italic text-center pt-3 mt-4 border-t border-brand-borderLight">
+                Priority star (★) alerts the floor manager without changing queue order.
               </p>
             </section>
           </div>
@@ -487,7 +471,7 @@ export default function App() {
             <div className="flex items-center justify-between gap-3 pb-4 border-b border-brand-borderLight">
               <div>
                 <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                  <History size={16} className="text-brand-gold" /> 4. Daily Turn History
+                  <History size={16} className="text-brand-gold" /> Daily Turn History
                 </h2>
                 <p className="text-xs text-brand-softSlate mt-0.5">Logged calls for current business day</p>
               </div>
@@ -535,7 +519,7 @@ export default function App() {
             <section className="bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
               <div className="pb-3 border-b border-brand-borderLight">
                 <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                  <Sun size={16} className="text-amber-500" /> 5. Start New Day
+                  <Sun size={16} className="text-amber-500" /> Start New Day
                 </h2>
                 <p className="text-xs text-brand-softSlate mt-0.5">Archive history and clear queues</p>
               </div>

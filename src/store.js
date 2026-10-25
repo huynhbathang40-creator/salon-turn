@@ -274,7 +274,7 @@ async function createCloudStore() {
   };
 }
 
-export const hasCloud = Boolean(SUPABASE_URL && SUPABASE_KEY);
+export const hasCloud = Boolean(SUPABASE_URL && SUPABASE_KEY) && !import.meta.env.VITE_LOCAL_ONLY;
 
 export function createStore() {
   return hasCloud ? createCloudStore() : Promise.resolve(createLocalStore());
