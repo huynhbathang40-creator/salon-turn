@@ -6,6 +6,7 @@ import {
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
 import HistoryPanel from "./HistoryPanel.jsx";
+import RewanowButton from "./RewanowButton.jsx";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -215,22 +216,23 @@ export default function App() {
       {/* HEADER */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-brand-borderLight shadow-sm pt-safe">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-lightGold border border-brand-borderGold flex items-center justify-center text-brand-gold shadow-sm">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="hidden sm:flex w-10 h-10 shrink-0 rounded-xl bg-brand-lightGold border border-brand-borderGold items-center justify-center text-brand-gold shadow-sm">
               <Gem size={20} />
             </div>
             <div>
-              <h1 className="font-serif font-bold text-xl sm:text-2xl text-brand-charcoal tracking-tight">Nail Salon Call Manager</h1>
-              <p className="text-[11px] uppercase tracking-widest text-brand-gold font-semibold">Turn Tracking & Management</p>
+              <h1 className="font-serif font-bold text-lg leading-tight sm:text-2xl text-brand-charcoal tracking-tight">Nail Salon Call Manager</h1>
+              <p className="text-[11px] uppercase tracking-widest hidden min-[400px]:block text-brand-gold font-semibold">Turn Tracking & Management</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-warmIvory border border-brand-borderLight text-xs text-brand-softSlate">
               <Calendar size={14} className="text-brand-gold" />
               <span>Business Date: <strong className="text-brand-charcoal font-semibold">{data.businessDate}</strong></span>
             </div>
+            <RewanowButton />
             <div
-              className={`w-2.5 h-2.5 rounded-full ${syncError ? "bg-rose-500" : isCloud ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`}
+              className={`w-2.5 h-2.5 shrink-0 rounded-full ${syncError ? "bg-rose-500" : isCloud ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`}
               title={syncError ? "Connection issue" : isCloud ? "Real-time sync active" : "Saved on this device only"}
             />
           </div>
