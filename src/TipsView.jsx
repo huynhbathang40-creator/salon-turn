@@ -13,7 +13,7 @@ function readCachedList() {
   try { return JSON.parse(localStorage.getItem(LIST_KEY) || "null"); } catch { return null; }
 }
 
-export default function TipsView() {
+export default function TipsView({ canEdit = false }) {
   const [staff, setStaff] = useState(() => readCachedList());
   const [error, setError] = useState(false);
   const [query, setQuery] = useState("");
@@ -82,12 +82,12 @@ export default function TipsView() {
         <p className="text-center text-sm text-brand-softSlate py-6">No technician named "{query}".</p>
       )}
 
-      {selected && <TipModal tech={selected} onClose={() => setSelected(null)} />}
+      {selected && <TipModal tech={selected} canEdit={canEdit} onClose={() => setSelected(null)} />}
     </div>
   );
 }
 
-function TipModal({ tech, onClose }) {
+function TipModal({ tech, onClose, canEdit }) {
   const [qr, setQr] = useState(qrCache.get(tech.id) || null);
   const [method, setMethod] = useState("zelle");
   const [copied, setCopied] = useState(false);
@@ -141,9 +141,11 @@ function TipModal({ tech, onClose }) {
           <Avatar name={tech.name} size={72} ring="border-brand-gold" />
           <h3 className="font-bold text-xl text-brand-charcoal mt-2">{tech.name}</h3>
           {tech.role && <p className="text-xs text-brand-softSlate">{tech.role}</p>}
-          <button onClick={() => setEditPic(true)} className="mt-1 text-[11px] text-brand-softSlate underline">
-            Change picture
-          </button>
+          {canEdit && (
+            <button onClick={() => setEditPic(true)} className="mt-1 text-[11px] text-brand-softSlate underline">
+              Change picture
+            </button>
+          )}
         </div>
 
         {hasVenmo && (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getClient } from "./db.js";
-import { hasCloud } from "./store.js";
+import { getClient, hasCloud } from "./db.js";
+import { getToken } from "./auth.js";
 
 // Technician pictures, shared live between devices. Key = lowercase name, so Turns and Tips match.
 export const nameKey = (name) => (name || "").trim().toLowerCase();
@@ -56,7 +56,7 @@ export async function saveAvatar(name, image) {
   emit();
   if (!hasCloud) return;
   const sb = await getClient();
-  const { error } = await sb.from("avatars").upsert({ name_key: key, image, updated_at: new Date().toISOString() });
+  const { error } = await sb.rpc("set_avatar", { p_token: getToken(), p_key: key, p_image: image });
   if (error) throw error;
 }
 
@@ -67,7 +67,7 @@ export async function removeAvatar(name) {
   emit();
   if (!hasCloud) return;
   const sb = await getClient();
-  const { error } = await sb.from("avatars").delete().eq("name_key", key);
+  const { error } = await sb.rpc("remove_avatar", { p_token: getToken(), p_key: key });
   if (error) throw error;
 }
 

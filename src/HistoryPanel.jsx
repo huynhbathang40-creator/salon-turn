@@ -35,7 +35,7 @@ const tabBtn = (active) =>
     active ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"
   }`;
 
-export default function HistoryPanel({ data, archive, onUndoLastCall }) {
+export default function HistoryPanel({ data, archive, onUndoLastCall, canEdit = true }) {
   const [view, setView] = useState("tech"); // "tech" | "time"
   const [dayId, setDayId] = useState("today");
   const [techKey, setTechKey] = useState("all");
@@ -62,7 +62,7 @@ export default function HistoryPanel({ data, archive, onUndoLastCall }) {
           </h2>
           <p className="text-xs text-brand-softSlate mt-0.5">Every turn and the exact time it was called</p>
         </div>
-        {isToday && (
+        {isToday && canEdit && (
           <button
             disabled={data.history.length === 0}
             onClick={onUndoLastCall}

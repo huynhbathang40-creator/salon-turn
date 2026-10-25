@@ -1,5 +1,6 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
-import { getClient } from "./db.js";
+import { getClient, hasCloud } from "./db.js";
+import { getToken, lostManager } from "./auth.js";
 
 export const STORAGE_KEY = "salon-turn-v1";
 
@@ -209,25 +210,31 @@ async function createCloudStore() {
 
   await refresh();
 
+  // Only manager devices may save; the database checks the session token on every change
+  const isNotManager = (e) => /not_manager/.test(e?.message || "");
+
   async function save(updater) {
     // optimistic concurrency: only write if nobody else changed the board meanwhile, otherwise retry on fresh data
     for (let attempt = 0; attempt < 6; attempt++) {
       const base = attempt === 0 && server ? server : await fetchBoard().then((r) => ({ data: normalize(r.data), version: r.version }));
       const next = updater(base.data);
-      const { data, error: e } = await sb
-        .from("board")
-        .update({ data: next, version: base.version + 1, updated_at: new Date().toISOString() })
-        .eq("id", "main")
-        .eq("version", base.version)
-        .select("data, version");
+      const { data: version, error: e } = await sb.rpc("save_board", { p_token: getToken(), p_data: next, p_version: base.version });
       if (e) throw e;
-      if (data && data.length) {
-        acceptServer(data[0]);
+      if (version != null) {
+        acceptServer({ data: next, version });
         return;
       }
       server = null; // stale: reload and try again
     }
     throw new Error("Could not save, please try again");
+  }
+
+  function onSaveError(e) {
+    console.error(e);
+    if (isNotManager(e)) {
+      lostManager(); // PIN changed or signed out elsewhere: back to view-only
+      error = null;
+    } else error = e;
   }
 
   return {
@@ -245,7 +252,7 @@ async function createCloudStore() {
       queue = queue
         .then(() => save(updater))
         .then(() => { error = null; })
-        .catch((e) => { console.error(e); error = e; })
+        .catch(onSaveError)
         .finally(() => {
           pending--;
           if (pending === 0 && server) board = server.data;
@@ -259,11 +266,11 @@ async function createCloudStore() {
       emit();
       queue = queue
         .then(async () => {
-          const { error: e } = await sb.rpc("start_new_day", { p_today: todayString(), p_archive_id: newId() });
+          const { error: e } = await sb.rpc("start_new_day", { p_token: getToken(), p_today: todayString(), p_archive_id: newId() });
           if (e) throw e;
           await refresh();
         })
-        .catch((e) => { console.error(e); error = e; })
+        .catch(onSaveError)
         .finally(() => {
           pending--;
           if (pending === 0 && server) board = server.data;
@@ -274,7 +281,7 @@ async function createCloudStore() {
   };
 }
 
-export const hasCloud = Boolean(SUPABASE_URL && SUPABASE_KEY) && !import.meta.env.VITE_LOCAL_ONLY;
+export { hasCloud };
 
 export function createStore() {
   return hasCloud ? createCloudStore() : Promise.resolve(createLocalStore());

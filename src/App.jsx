@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Gem, Calendar, CheckCircle2, AlertTriangle, Plus, Pencil, Trash2, X, Crown, Star,
-  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera,
+  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera, Lock,
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
@@ -10,6 +10,8 @@ import RewanowButton from "./RewanowButton.jsx";
 import TipsView from "./TipsView.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
+import ManagerButton from "./ManagerButton.jsx";
+import { useManager } from "./auth.js";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -28,6 +30,7 @@ const formatDate = (t) => new Date(t).toLocaleDateString();
 const callBtn = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-2 rounded-xl transition shadow-sm active:scale-95";
 
 export default function App() {
+  const { isManager: canEdit } = useManager(); // false = view only (no PIN on this device)
   const [store, setStore] = useState(null);
   const [data, setBoard] = useState(null);
   const [archive, setArchive] = useState([]);
@@ -66,7 +69,7 @@ export default function App() {
     return () => stop();
   }, []);
 
-  const setData = (updater) => store.update(updater);
+  const setData = (updater) => (canEdit ? store.update(updater) : undefined);
 
   function notify(text) {
     setMessage(text);
@@ -246,6 +249,7 @@ export default function App() {
               <Calendar size={14} className="text-brand-gold" />
               <span>Business Date: <strong className="text-brand-charcoal font-semibold">{data.businessDate}</strong></span>
             </div>
+            <ManagerButton onMessage={notify} />
             <RewanowButton />
             <div
               className={`w-2.5 h-2.5 shrink-0 rounded-full ${syncError ? "bg-rose-500" : isCloud ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`}
@@ -270,10 +274,17 @@ export default function App() {
 
       {tab === "tips" ? (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
-          <TipsView />
+          <TipsView canEdit={canEdit} />
         </main>
       ) : (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow space-y-6 sm:space-y-8">
+        {!canEdit && (
+          <div className="p-3.5 rounded-2xl bg-brand-charcoal text-white text-sm flex items-center gap-2.5">
+            <Lock size={16} className="text-brand-gold shrink-0" />
+            <span>View only. The board updates live, but changes need the manager PIN.</span>
+          </div>
+        )}
+
         {/* HERO & TOAST */}
         <div className="relative rounded-3xl p-6 sm:p-8 border border-brand-borderGold/60 shadow-sm overflow-hidden hero-dots">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -324,6 +335,7 @@ export default function App() {
                 </span>
               </div>
 
+              {canEdit ? (
               <form onSubmit={addTechnician} className="flex gap-2 my-5">
                 <input
                   type="text"
@@ -336,6 +348,9 @@ export default function App() {
                   <Plus size={14} /> Add
                 </button>
               </form>
+              ) : (
+                <div className="h-4" />
+              )}
 
               {data.technicians.length === 0 ? (
                 <div className="p-8 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight text-brand-softSlate text-sm">
@@ -359,19 +374,20 @@ export default function App() {
                       ) : (
                         <>
                           <button
-                            onClick={() => setAvatarFor(tech.name)}
+                            onClick={() => canEdit && setAvatarFor(tech.name)}
+                            disabled={!canEdit}
                             className="flex items-center gap-2.5 min-w-0 text-left"
-                            aria-label={`Change ${tech.name}'s picture`}
+                            aria-label={canEdit ? `Change ${tech.name}'s picture` : tech.name}
                           >
                             <span className="relative">
                               <Avatar name={tech.name} size={40} />
-                              <span className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-brand-charcoal text-white flex items-center justify-center border-2 border-white">
+                              <span className={`absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-brand-charcoal text-white items-center justify-center border-2 border-white ${canEdit ? "flex" : "hidden"}`}>
                                 <Camera size={9} />
                               </span>
                             </span>
                             <span className="font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
                           </button>
-                          <div className="flex items-center gap-2">
+                          {canEdit && <div className="flex items-center gap-2">
                             <button onClick={() => callTechnician(tech.id)} className={callBtn}>CALL</button>
                             <button
                               onClick={() => { setEditingId(tech.id); setEditingName(tech.name); }}
@@ -387,7 +403,7 @@ export default function App() {
                             >
                               <Trash2 size={13} />
                             </button>
-                          </div>
+                          </div>}
                         </>
                       )}
                     </div>
@@ -406,7 +422,7 @@ export default function App() {
                   <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
                     <Crown size={17} className="text-brand-gold" /> Live Turn Position
                   </h2>
-                  <p className="text-xs text-brand-softSlate mt-0.5">Hold a name, then drag to move it</p>
+                  <p className="text-xs text-brand-softSlate mt-0.5">{canEdit ? "Hold a name, then drag to move it" : "Live view"}</p>
                 </div>
                 <span className="px-3 py-1 rounded-full bg-brand-lightGold border border-brand-borderGold text-xs font-bold text-brand-gold">
                   {data.standby.length + data.turnPosition.length} Active
@@ -436,11 +452,12 @@ export default function App() {
                 </div>
 
                 {activeStandby.length === 0 ? (
-                  <p className="text-xs text-emerald-900/60 text-center py-3">No one on standby. Tap a name below to add.</p>
+                  <p className="text-xs text-emerald-900/60 text-center py-3">No one on standby.{canEdit ? " Tap a name below to add." : ""}</p>
                 ) : (
                   <SortableList
                     ids={activeStandby.map((t) => t.id)}
                     onReorder={moveStandby}
+                    disabled={!canEdit}
                     className="flex flex-col gap-2"
                   >
                     {(id, index) => {
@@ -455,19 +472,19 @@ export default function App() {
                             <Avatar name={tech.name} size={32} ring="border-emerald-200" />
                             <span className="font-bold text-brand-charcoal text-base truncate">{tech.name}</span>
                           </div>
-                          <div className="flex items-center gap-1">
+                          {canEdit && <div className="flex items-center gap-1">
                             <button onClick={() => callTechnician(tech.id, true)} className={callBtn}>CALL</button>
                             <button onClick={() => removeFromStandby(tech.id)} className="p-2 text-rose-600 rounded-lg" aria-label="Remove from standby">
                               <X size={16} />
                             </button>
-                          </div>
+                          </div>}
                         </div>
                       );
                     }}
                   </SortableList>
                 )}
 
-                {availableForStandby.length > 0 && (
+                {canEdit && availableForStandby.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-3 mt-2 border-t border-emerald-200/70">
                     {availableForStandby.map((tech) => (
                       <button
@@ -492,12 +509,13 @@ export default function App() {
                 <div className="p-8 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight">
                   <UserRound size={30} className="text-brand-gold/40 mx-auto mb-2" />
                   <p className="font-serif text-base font-semibold text-brand-charcoal">Queue is Empty</p>
-                  <p className="text-xs text-brand-softSlate mt-1">Press CALL to dispatch to queue.</p>
+                  {canEdit && <p className="text-xs text-brand-softSlate mt-1">Press CALL to dispatch to queue.</p>}
                 </div>
               ) : (
                 <SortableList
                   ids={activeTurn.map((t) => t.id)}
                   onReorder={moveTurn}
+                  disabled={!canEdit}
                   className="flex flex-col gap-2.5 w-full"
                 >
                   {(id, index) => {
@@ -567,7 +585,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        {canEdit && <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             onClick={() => toggleStar(tech.id)}
                             className={`w-9 h-9 rounded-xl text-base font-bold flex items-center justify-center ${
@@ -585,7 +603,7 @@ export default function App() {
                           >
                             <X size={16} />
                           </button>
-                        </div>
+                        </div>}
                       </div>
                     );
                   }}
@@ -600,11 +618,11 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} />
+          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} canEdit={canEdit} />
 
           <div className="space-y-6 sm:space-y-8">
             {/* 5. NEW DAY */}
-            <section className="bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
+            {canEdit && <section className="bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
               <div className="pb-3 border-b border-brand-borderLight">
                 <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
                   <Sun size={16} className="text-amber-500" /> Start New Day
@@ -631,7 +649,7 @@ export default function App() {
                   </div>
                 </div>
               )}
-            </section>
+            </section>}
 
             {/* ARCHIVE */}
             <section className="bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
@@ -680,7 +698,7 @@ export default function App() {
       </footer>
 
       {/* TOAST: fixed at bottom so it shows wherever you scrolled */}
-      {avatarFor && <AvatarEditor name={avatarFor} onClose={() => setAvatarFor(null)} onSaved={notify} />}
+      {avatarFor && canEdit && <AvatarEditor name={avatarFor} onClose={() => setAvatarFor(null)} onSaved={notify} />}
       {lastRemoved && (
         <div className="fixed left-4 right-4 bottom-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-3 bg-brand-charcoal text-white text-sm rounded-xl shadow-lg flex items-center justify-between gap-3 border border-rose-400/50 toast-in mb-safe">
           <span>{lastRemoved.name} removed from turn.</span>
