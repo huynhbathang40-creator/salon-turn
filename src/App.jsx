@@ -204,7 +204,7 @@ export default function App() {
               <p className="text-sm text-brand-softSlate mt-1 max-w-xl">
                 {isCloud
                   ? "Synchronized live queue management for salon floor managers and technicians across all devices."
-                  : "Running on this device only. Connect your own Firebase project to sync across staff phones."}
+                  : "Running on this device only. Set up Supabase in src/config.js to sync across devices."}
               </p>
             </div>
             <div className="flex items-center gap-3">
