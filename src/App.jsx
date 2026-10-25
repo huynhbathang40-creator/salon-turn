@@ -235,7 +235,7 @@ export default function App() {
               <div className="flex items-center justify-between pb-4 border-b border-brand-borderLight">
                 <div>
                   <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-brand-gold" /> 1. Nail Techs
+                    <span className="w-2 h-2 rounded-full bg-brand-gold" /> Nail Techs
                   </h2>
                   <p className="text-xs text-brand-softSlate mt-0.5">Active technician directory</p>
                 </div>
