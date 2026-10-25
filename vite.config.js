@@ -9,6 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       includeAssets: ["apple-touch-icon.png", "favicon.svg"],
       manifest: {
         name: "Salon Turn",
