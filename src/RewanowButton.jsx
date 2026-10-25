@@ -9,7 +9,21 @@ const WEB_URL = "https://www.rewanow.com/apps/";
 
 export default function RewanowButton() {
   const [open, setOpen] = useState(false);
+  const [help, setHelp] = useState(false);
   const ref = useRef(null);
+
+  // Navigate first, close the menu afterwards (removing the link mid-tap made iPhone ignore it).
+  // If the app is still on screen 2.5s later, the Shortcut did not run: show how to fix it.
+  function openApp(e) {
+    e.preventDefault();
+    setHelp(false);
+    window.location.href = SHORTCUT_URL;
+    const started = Date.now();
+    window.setTimeout(() => {
+      setOpen(false);
+      if (document.visibilityState === "visible" && Date.now() - started < 4000) setHelp(true);
+    }, 2500);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +48,7 @@ export default function RewanowButton() {
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl border border-brand-borderLight shadow-xl p-1.5 z-50 toast-in">
           <a
             href={SHORTCUT_URL}
-            onClick={() => setOpen(false)}
+            onClick={openApp}
             className="flex items-start gap-3 p-3 rounded-xl hover:bg-brand-warmIvory"
           >
             <Smartphone size={18} className="text-brand-gold mt-0.5 shrink-0" />
@@ -47,7 +61,7 @@ export default function RewanowButton() {
             href={WEB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
+            onClick={() => window.setTimeout(() => setOpen(false), 300)}
             className="flex items-start gap-3 p-3 rounded-xl hover:bg-brand-warmIvory"
           >
             <Globe size={18} className="text-brand-gold mt-0.5 shrink-0" />
@@ -56,6 +70,17 @@ export default function RewanowButton() {
               <span className="block text-[11px] text-brand-softSlate">rewanow.com in Safari</span>
             </span>
           </a>
+        </div>
+      )}
+      {help && (
+        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border-2 border-amber-300 shadow-xl p-4 z-50 text-xs text-brand-charcoal space-y-2 toast-in">
+          <p className="font-bold text-sm">Rewanow did not open</p>
+          <ol className="list-decimal pl-4 space-y-1 text-brand-softSlate">
+            <li>In the Shortcuts app, the shortcut must be named exactly <b className="text-brand-charcoal">{REWANOW_SHORTCUT}</b>.</li>
+            <li>Tap it once there: if Rewanow opens, the shortcut works.</li>
+            <li>If iPhone asks to allow the shortcut, tap Allow.</li>
+          </ol>
+          <button onClick={() => setHelp(false)} className="w-full py-2 rounded-xl bg-brand-warmIvory border border-brand-borderLight font-bold">OK</button>
         </div>
       )}
     </div>
