@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import {
   Gem, Calendar, CheckCircle2, AlertTriangle, Plus, Pencil, Trash2, X, Crown, Star,
-  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical,
+  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera,
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
 import HistoryPanel from "./HistoryPanel.jsx";
 import RewanowButton from "./RewanowButton.jsx";
 import TipsView from "./TipsView.jsx";
+import Avatar from "./Avatar.jsx";
+import AvatarEditor from "./AvatarEditor.jsx";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -49,6 +51,7 @@ export default function App() {
   }
   const [confirmRemoveId, setConfirmRemoveId] = useState(null); // step 1 of removing a turn
   const [lastRemoved, setLastRemoved] = useState(null); // for the Undo button
+  const [avatarFor, setAvatarFor] = useState(null); // tech name whose picture is being changed
 
   useEffect(() => {
     let stop = () => {};
@@ -355,7 +358,19 @@ export default function App() {
                         </div>
                       ) : (
                         <>
-                          <span className="font-bold text-brand-charcoal text-sm">{tech.name}</span>
+                          <button
+                            onClick={() => setAvatarFor(tech.name)}
+                            className="flex items-center gap-2.5 min-w-0 text-left"
+                            aria-label={`Change ${tech.name}'s picture`}
+                          >
+                            <span className="relative">
+                              <Avatar name={tech.name} size={40} />
+                              <span className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-brand-charcoal text-white flex items-center justify-center border-2 border-white">
+                                <Camera size={9} />
+                              </span>
+                            </span>
+                            <span className="font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
+                          </button>
                           <div className="flex items-center gap-2">
                             <button onClick={() => callTechnician(tech.id)} className={callBtn}>CALL</button>
                             <button
@@ -433,10 +448,11 @@ export default function App() {
                       return (
                         <div className="p-3 bg-white border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <GripVertical size={16} className="text-slate-300 shrink-0" />
+                            <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                             <span className="w-7 h-7 shrink-0 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
                               S{index + 1}
                             </span>
+                            <Avatar name={tech.name} size={32} ring="border-emerald-200" />
                             <span className="font-bold text-brand-charcoal text-base truncate">{tech.name}</span>
                           </div>
                           <div className="flex items-center gap-1">
@@ -521,15 +537,26 @@ export default function App() {
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <GripVertical size={16} className="text-slate-300 shrink-0" />
+                          <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                           <div
-                            className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center font-serif font-bold text-sm ${
+                            className={`hidden sm:flex w-9 h-9 shrink-0 rounded-xl items-center justify-center font-serif font-bold text-sm ${
                               index === 0 ? "bg-brand-gold text-white shadow-sm" : "bg-white text-brand-charcoal border border-brand-borderLight"
                             }`}
                           >
                             #{index + 1}
                           </div>
-                          <div className="min-w-0">
+                          <span className="relative shrink-0">
+                            <Avatar name={tech.name} size={40} />
+                            {/* position number on the picture (phones) */}
+                            <span
+                              className={`sm:hidden absolute -top-1 -left-1 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center border-2 border-white ${
+                                index === 0 ? "bg-brand-gold text-white" : "bg-brand-charcoal text-white"
+                              }`}
+                            >
+                              {index + 1}
+                            </span>
+                          </span>
+                          <div className="min-w-0 overflow-hidden">
                             <div className="font-bold text-brand-charcoal text-base flex items-center gap-1.5">
                               <span className="truncate">{tech.name}</span>
                               {isStarred && <span className="text-brand-gold font-black">★</span>}
@@ -653,6 +680,7 @@ export default function App() {
       </footer>
 
       {/* TOAST: fixed at bottom so it shows wherever you scrolled */}
+      {avatarFor && <AvatarEditor name={avatarFor} onClose={() => setAvatarFor(null)} onSaved={notify} />}
       {lastRemoved && (
         <div className="fixed left-4 right-4 bottom-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-3 bg-brand-charcoal text-white text-sm rounded-xl shadow-lg flex items-center justify-between gap-3 border border-rose-400/50 toast-in mb-safe">
           <span>{lastRemoved.name} removed from turn.</span>

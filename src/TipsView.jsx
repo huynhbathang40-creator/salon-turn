@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, Copy, Check, QrCode, Loader2, Heart } from "lucide-react";
 import { getClient } from "./db.js";
+import Avatar from "./Avatar.jsx";
+import AvatarEditor from "./AvatarEditor.jsx";
 
 // Staff tip directory (copied from the salon's tip page). Read-only here: payment info can't be changed from the app.
 const LIST_KEY = "salon-turn-tips-list-v1";
 const qrCache = new Map(); // id -> { zelle_qr, venmo_qr }
 
-function initials(name) {
-  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
 
 function readCachedList() {
   try { return JSON.parse(localStorage.getItem(LIST_KEY) || "null"); } catch { return null; }
@@ -71,9 +70,7 @@ export default function TipsView() {
             onClick={() => setSelected(t)}
             className="bg-white rounded-2xl border border-brand-borderLight shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition"
           >
-            <span className="w-16 h-16 rounded-full bg-brand-lightGold border-2 border-brand-borderGold flex items-center justify-center font-serif text-xl font-bold text-brand-gold">
-              {initials(t.name)}
-            </span>
+            <Avatar name={t.name} size={72} />
             <span className="font-bold text-brand-charcoal text-base">{t.name}</span>
             <span className="w-full py-2 rounded-full bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center gap-1.5">
               <Heart size={12} /> Tip {t.name.split(" ")[0]}
@@ -94,6 +91,7 @@ function TipModal({ tech, onClose }) {
   const [qr, setQr] = useState(qrCache.get(tech.id) || null);
   const [method, setMethod] = useState("zelle");
   const [copied, setCopied] = useState(false);
+  const [editPic, setEditPic] = useState(false);
 
   useEffect(() => {
     if (qrCache.has(tech.id)) return;
@@ -140,11 +138,12 @@ function TipModal({ tech, onClose }) {
         </button>
 
         <div className="text-center">
-          <span className="inline-flex w-14 h-14 rounded-full bg-brand-lightGold border-2 border-brand-gold items-center justify-center font-serif text-lg font-bold text-brand-gold">
-            {initials(tech.name)}
-          </span>
+          <Avatar name={tech.name} size={72} ring="border-brand-gold" />
           <h3 className="font-bold text-xl text-brand-charcoal mt-2">{tech.name}</h3>
           {tech.role && <p className="text-xs text-brand-softSlate">{tech.role}</p>}
+          <button onClick={() => setEditPic(true)} className="mt-1 text-[11px] text-brand-softSlate underline">
+            Change picture
+          </button>
         </div>
 
         {hasVenmo && (
@@ -189,6 +188,7 @@ function TipModal({ tech, onClose }) {
           </div>
         )}
 
+        {editPic && <AvatarEditor name={tech.name} onClose={() => setEditPic(false)} />}
         <p className="text-[11px] text-brand-softSlate text-center mt-4">
           {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}
         </p>
