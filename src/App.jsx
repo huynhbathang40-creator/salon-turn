@@ -32,6 +32,8 @@ export default function App() {
   const [editingName, setEditingName] = useState("");
   const [confirmNewDay, setConfirmNewDay] = useState(false);
   const [message, setMessage] = useState("");
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null); // step 1 of removing a turn
+  const [lastRemoved, setLastRemoved] = useState(null); // for the Undo button
 
   useEffect(() => {
     let stop = () => {};
@@ -99,6 +101,47 @@ export default function App() {
   const removeFromStandby = (id) => setData((p) => ({ ...p, standby: p.standby.filter((x) => x !== id) }));
   const moveStandby = (id, overId) => setData((p) => ({ ...p, standby: moveTo(p.standby, id, overId) }));
   const moveTurn = (id, overId) => setData((p) => ({ ...p, turnPosition: moveTo(p.turnPosition, id, overId) }));
+  // Tech went home early: take them off the turn board (their past calls stay in history)
+  function removeFromTurn(id) {
+    const tech = getTechnician(id);
+    const info = {
+      id,
+      name: tech?.name || "",
+      index: data.turnPosition.indexOf(id),
+      starred: data.starredIds.includes(id),
+      standbyIndex: data.standby.indexOf(id),
+    };
+    setData((p) => ({
+      ...p,
+      turnPosition: p.turnPosition.filter((x) => x !== id),
+      standby: p.standby.filter((x) => x !== id),
+      starredIds: p.starredIds.filter((x) => x !== id),
+    }));
+    setConfirmRemoveId(null);
+    setLastRemoved(info);
+    window.clearTimeout(removeFromTurn.t);
+    removeFromTurn.t = window.setTimeout(() => setLastRemoved(null), 8000);
+  }
+
+  function undoRemove() {
+    const r = lastRemoved;
+    if (!r) return;
+    const insertAt = (list, i) => {
+      if (i < 0 || list.includes(r.id)) return list;
+      const next = [...list];
+      next.splice(Math.min(i, next.length), 0, r.id);
+      return next;
+    };
+    setData((p) => ({
+      ...p,
+      turnPosition: insertAt(p.turnPosition, r.index),
+      standby: insertAt(p.standby, r.standbyIndex),
+      starredIds: r.starred && !p.starredIds.includes(r.id) ? [...p.starredIds, r.id] : p.starredIds,
+    }));
+    setLastRemoved(null);
+    notify(`${r.name} is back in the turn list.`);
+  }
+
   const toggleStar = (id) =>
     setData((p) => ({
       ...p,
@@ -410,6 +453,29 @@ export default function App() {
                   {(id, index) => {
                     const tech = getTechnician(id);
                     const isStarred = data.starredIds.includes(tech.id);
+                    if (confirmRemoveId === id)
+                      return (
+                        <div className="w-full p-3 sm:p-4 rounded-2xl border-2 border-rose-300 bg-rose-50 space-y-2.5">
+                          <p className="text-sm text-rose-900">
+                            Remove <strong>{tech.name}</strong> from the turn list?
+                            <span className="block text-xs text-rose-800/70 mt-0.5">Past calls stay in today's history.</span>
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => removeFromTurn(id)}
+                              className="flex-1 py-2.5 bg-rose-600 text-white font-bold text-sm rounded-xl shadow-sm active:scale-95"
+                            >
+                              Yes, remove {tech.name}
+                            </button>
+                            <button
+                              onClick={() => setConfirmRemoveId(null)}
+                              className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      );
                     return (
                       <div
                         className={`w-full p-3 sm:p-4 rounded-2xl border flex items-center justify-between gap-2 ${
@@ -435,7 +501,7 @@ export default function App() {
                               {isStarred && <span className="text-brand-gold font-black">★</span>}
                             </div>
                             {index === 0 && (
-                              <span className="text-[10px] uppercase tracking-wider font-bold bg-brand-gold text-white px-2 py-0.5 rounded-full">Next Up</span>
+                              <span className="inline-block whitespace-nowrap text-[10px] uppercase tracking-wider font-bold bg-brand-gold text-white px-2 py-0.5 rounded-full">Next Up</span>
                             )}
                           </div>
                         </div>
@@ -451,6 +517,13 @@ export default function App() {
                             {isStarred ? "★" : "☆"}
                           </button>
                           <button onClick={() => callTechnician(tech.id)} className={callBtn + " px-4"}>CALL</button>
+                          <button
+                            onClick={() => setConfirmRemoveId(id)}
+                            className="w-9 h-9 rounded-xl bg-white border border-brand-borderLight text-rose-600 flex items-center justify-center"
+                            aria-label={`Remove ${tech.name} from turn`}
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
                       </div>
                     );
@@ -591,7 +664,15 @@ export default function App() {
       </footer>
 
       {/* TOAST: fixed at bottom so it shows wherever you scrolled */}
-      {message && (
+      {lastRemoved && (
+        <div className="fixed left-4 right-4 bottom-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-3 bg-brand-charcoal text-white text-sm rounded-xl shadow-lg flex items-center justify-between gap-3 border border-rose-400/50 toast-in mb-safe">
+          <span>{lastRemoved.name} removed from turn.</span>
+          <button onClick={undoRemove} className="px-3 py-1.5 rounded-lg bg-white text-brand-charcoal font-bold text-xs uppercase tracking-wider">
+            Undo
+          </button>
+        </div>
+      )}
+      {message && !lastRemoved && (
         <div className="fixed left-4 right-4 bottom-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-3.5 bg-brand-charcoal text-white text-sm rounded-xl shadow-lg flex items-center gap-2 border border-brand-gold/40 toast-in mb-safe">
           <CheckCircle2 size={16} className="text-brand-gold shrink-0" />
           {message}
