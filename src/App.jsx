@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
+import HistoryPanel from "./HistoryPanel.jsx";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -539,53 +540,7 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* 4. HISTORY */}
-          <section className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-brand-borderLight shadow-sm">
-            <div className="flex items-center justify-between gap-3 pb-4 border-b border-brand-borderLight">
-              <div>
-                <h2 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2">
-                  <History size={16} className="text-brand-gold" /> Daily Turn History
-                </h2>
-                <p className="text-xs text-brand-softSlate mt-0.5">Logged calls for current business day</p>
-              </div>
-              <button
-                disabled={data.history.length === 0}
-                onClick={undoLastCall}
-                className="px-3 sm:px-4 py-2 bg-brand-warmIvory border border-brand-borderLight text-rose-700 text-xs font-bold rounded-xl transition disabled:opacity-40 flex items-center gap-1.5 shrink-0"
-              >
-                <RotateCcw size={13} /> UNDO LAST CALL
-              </button>
-            </div>
-
-            {data.history.length === 0 ? (
-              <div className="p-8 text-center bg-brand-warmIvory rounded-2xl border border-dashed border-brand-borderLight text-brand-softSlate text-xs my-5">
-                No turn calls recorded for today.
-              </div>
-            ) : (
-              <div className="overflow-x-auto my-5">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-brand-warmIvory text-brand-softSlate uppercase text-[11px] tracking-wider border-b border-brand-borderLight">
-                      <th className="p-3 font-semibold">Turn #</th>
-                      <th className="p-3 font-semibold">Technician</th>
-                      <th className="p-3 font-semibold">Date</th>
-                      <th className="p-3 font-semibold text-right">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-borderLight text-xs">
-                    {[...data.history].reverse().map((entry) => (
-                      <tr key={entry.id}>
-                        <td className="p-3 font-serif font-bold text-brand-gold">#{entry.turnNo}</td>
-                        <td className="p-3 font-bold text-brand-charcoal">{entry.techName}</td>
-                        <td className="p-3 text-brand-softSlate">{formatDate(entry.timestamp)}</td>
-                        <td className="p-3 text-right text-brand-softSlate font-mono">{formatTime(entry.timestamp)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} />
 
           <div className="space-y-6 sm:space-y-8">
             {/* 5. NEW DAY */}
