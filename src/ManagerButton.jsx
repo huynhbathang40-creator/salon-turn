@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Lock, Unlock, X, Loader2, ShieldCheck } from "lucide-react";
-import { useManager, login, setupPin, logout } from "./auth.js";
+import { useManager, login, setupPin, logout, LOCK_ENABLED } from "./auth.js";
 import { hasCloud } from "./db.js";
 
 // Header chip: "View only" (tap to enter PIN) or "Manager" (tap to lock this device)
@@ -8,7 +8,7 @@ export default function ManagerButton({ onMessage }) {
   const { isManager } = useManager();
   const [openPin, setOpenPin] = useState(false);
   const [menu, setMenu] = useState(false);
-  if (!hasCloud) return null;
+  if (!hasCloud || !LOCK_ENABLED) return null;
 
   return (
     <div className="relative">

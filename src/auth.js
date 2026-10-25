@@ -4,9 +4,11 @@ import { getClient, hasCloud } from "./db.js";
 // Manager mode: only devices that entered the PIN can change anything. Everyone else with the link can only look.
 // The database itself refuses changes without a valid session, so hiding buttons is not the only protection.
 const TOKEN_KEY = "salon-turn-manager-token";
+// Paused for now (owner asked to turn it off). Set to true to bring back the PIN lock.
+export const LOCK_ENABLED = false;
 
 let token = (() => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } })();
-let state = { isManager: !hasCloud || Boolean(token), status: "ready" }; // optimistic until checked
+let state = { isManager: !LOCK_ENABLED || !hasCloud || Boolean(token), status: "ready" }; // optimistic until checked
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
 
@@ -15,13 +17,13 @@ export const getToken = () => token;
 function setToken(t) {
   token = t;
   try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
-  state = { ...state, isManager: !hasCloud || Boolean(t) };
+  state = { ...state, isManager: !LOCK_ENABLED || !hasCloud || Boolean(t) };
   emit();
 }
 
 let checked = false;
 async function check() {
-  if (checked || !hasCloud) return;
+  if (checked || !hasCloud || !LOCK_ENABLED) return;
   checked = true;
   try {
     const sb = await getClient();
@@ -39,7 +41,7 @@ async function check() {
 
 // Called when the database refuses a change (e.g. PIN changed on another device)
 export function lostManager() {
-  if (token) setToken(null);
+  if (LOCK_ENABLED && token) setToken(null);
 }
 
 export function useManager() {
