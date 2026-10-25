@@ -1,0 +1,198 @@
+import { useEffect, useMemo, useState } from "react";
+import { Search, X, Copy, Check, QrCode, Loader2, Heart } from "lucide-react";
+import { getClient } from "./db.js";
+
+// Staff tip directory (copied from the salon's tip page). Read-only here: payment info can't be changed from the app.
+const LIST_KEY = "salon-turn-tips-list-v1";
+const qrCache = new Map(); // id -> { zelle_qr, venmo_qr }
+
+function initials(name) {
+  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function readCachedList() {
+  try { return JSON.parse(localStorage.getItem(LIST_KEY) || "null"); } catch { return null; }
+}
+
+export default function TipsView() {
+  const [staff, setStaff] = useState(() => readCachedList());
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    getClient()
+      .then((sb) => sb.from("tip_staff").select("id,name,role,zelle,venmo,sort").order("sort"))
+      .then(({ data, error: e }) => {
+        if (!alive) return;
+        if (e) throw e;
+        setStaff(data);
+        setError(false);
+        try { localStorage.setItem(LIST_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+      })
+      .catch((e) => { console.error(e); if (alive) setError(true); });
+    return () => { alive = false; };
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (staff || []).filter((t) => !q || t.name.toLowerCase().includes(q));
+  }, [staff, query]);
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center pt-2">
+        <h2 className="font-serif text-3xl font-bold text-brand-charcoal">Select Your Specialist</h2>
+        <p className="text-sm text-brand-softSlate mt-1">Tap a name to tip with Zelle or Venmo</p>
+      </div>
+
+      <div className="relative max-w-md mx-auto">
+        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-softSlate" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search technician..."
+          className="w-full bg-white border border-brand-borderLight rounded-full pl-11 pr-4 py-3 text-base sm:text-sm shadow-sm focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold"
+        />
+      </div>
+
+      {error && !staff && (
+        <p className="text-center text-sm text-rose-700">Could not load the staff list. Check the internet connection.</p>
+      )}
+      {!staff && !error && (
+        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-gold" /></div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {filtered.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setSelected(t)}
+            className="bg-white rounded-2xl border border-brand-borderLight shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition"
+          >
+            <span className="w-16 h-16 rounded-full bg-brand-lightGold border-2 border-brand-borderGold flex items-center justify-center font-serif text-xl font-bold text-brand-gold">
+              {initials(t.name)}
+            </span>
+            <span className="font-bold text-brand-charcoal text-base">{t.name}</span>
+            <span className="w-full py-2 rounded-full bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center gap-1.5">
+              <Heart size={12} /> Tip {t.name.split(" ")[0]}
+            </span>
+          </button>
+        ))}
+      </div>
+      {staff && filtered.length === 0 && (
+        <p className="text-center text-sm text-brand-softSlate py-6">No technician named "{query}".</p>
+      )}
+
+      {selected && <TipModal tech={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+function TipModal({ tech, onClose }) {
+  const [qr, setQr] = useState(qrCache.get(tech.id) || null);
+  const [method, setMethod] = useState("zelle");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (qrCache.has(tech.id)) return;
+    let alive = true;
+    getClient()
+      .then((sb) => sb.from("tip_staff").select("zelle_qr,venmo_qr").eq("id", tech.id).single())
+      .then(({ data }) => {
+        if (!data) return;
+        qrCache.set(tech.id, data);
+        if (alive) setQr(data);
+      })
+      .catch(console.error);
+    return () => { alive = false; };
+  }, [tech.id]);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const hasVenmo = Boolean(tech.venmo || qr?.venmo_qr);
+  const image = method === "zelle" ? qr?.zelle_qr : qr?.venmo_qr;
+  const handle = method === "zelle" ? tech.zelle : tech.venmo ? "@" + tech.venmo.replace(/^@/, "") : "";
+  const color = method === "zelle" ? "#7414ca" : "#008CFF";
+
+  function copy() {
+    const text = method === "zelle" ? tech.zelle : (tech.venmo || "").replace(/^@/, "");
+    if (!text) return;
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-safe max-h-[94vh] overflow-y-auto relative toast-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
+          <X size={18} />
+        </button>
+
+        <div className="text-center">
+          <span className="inline-flex w-14 h-14 rounded-full bg-brand-lightGold border-2 border-brand-gold items-center justify-center font-serif text-lg font-bold text-brand-gold">
+            {initials(tech.name)}
+          </span>
+          <h3 className="font-bold text-xl text-brand-charcoal mt-2">{tech.name}</h3>
+          {tech.role && <p className="text-xs text-brand-softSlate">{tech.role}</p>}
+        </div>
+
+        {hasVenmo && (
+          <div className="grid grid-cols-2 gap-2 mt-5">
+            {["zelle", "venmo"].map((m) => (
+              <button
+                key={m}
+                onClick={() => { setMethod(m); setCopied(false); }}
+                className="py-2.5 rounded-xl border-2 font-bold text-sm capitalize"
+                style={method === m ? { borderColor: m === "zelle" ? "#7414ca" : "#008CFF", color: m === "zelle" ? "#7414ca" : "#008CFF", background: m === "zelle" ? "#f3e8ff" : "#e6f4ff" } : { borderColor: "#E8E8EC", color: "#4A4A52" }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-col items-center">
+          <p className="text-xs font-bold tracking-wider mb-2" style={{ color }}>
+            SCAN {method.toUpperCase()} QR CODE
+          </p>
+          <div className="rounded-2xl p-3 bg-white border-2 border-dashed" style={{ borderColor: color }}>
+            {!qr ? (
+              <div className="w-[min(70vw,280px)] aspect-square flex items-center justify-center"><Loader2 className="animate-spin" style={{ color }} /></div>
+            ) : image ? (
+              <img src={image} alt={`${tech.name} ${method} QR code`} className="w-[min(70vw,280px)] aspect-square object-contain" />
+            ) : (
+              <div className="w-[min(70vw,280px)] aspect-square flex flex-col items-center justify-center text-brand-softSlate text-xs gap-2">
+                <QrCode size={32} className="opacity-30" /> No QR code saved
+              </div>
+            )}
+          </div>
+        </div>
+
+        {handle && (
+          <div className="mt-5 bg-brand-warmIvory rounded-2xl p-4 text-center border border-dashed border-brand-borderLight">
+            <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
+            <div className="text-lg font-bold text-brand-charcoal break-all mt-0.5">{handle}</div>
+            <button onClick={copy} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
+              {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        )}
+
+        <p className="text-[11px] text-brand-softSlate text-center mt-4">
+          {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}
+        </p>
+      </div>
+    </div>
+  );
+}

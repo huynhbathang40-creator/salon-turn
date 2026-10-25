@@ -1,4 +1,5 @@
 import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
+import { getClient } from "./db.js";
 
 export const STORAGE_KEY = "salon-turn-v1";
 
@@ -123,8 +124,7 @@ function createLocalStore() {
 const CACHE_KEY = "salon-turn-cloud-cache-v1";
 
 async function createCloudStore() {
-  const { createClient } = await import("@supabase/supabase-js");
-  const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+  const sb = await getClient();
 
   // Last known state from this device: the board appears instantly on open, even before the network answers
   let cached = null;
