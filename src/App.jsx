@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Gem, Calendar, CheckCircle2, AlertTriangle, Plus, Pencil, Trash2, X, Crown, Star,
-  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera, Lock,
+  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera, Lock, PhoneCall,
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
@@ -15,6 +15,7 @@ import { useManager } from "./auth.js";
 import TechEditor from "./TechEditor.jsx";
 import { useTipRows, saveTechTip, deleteTechTip, tipKey } from "./tips.js";
 import { sortByName } from "./staff.js";
+import { usePhones, savePhone, phoneKey, telHref } from "./phones.js";
 import { useAvatars, saveAvatar, removeAvatar, nameKey } from "./avatars.js";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
@@ -62,6 +63,23 @@ export default function App() {
   const [techEditor, setTechEditor] = useState(null); // { tech } to edit, or { initialName } to add
   const { rows: tipRows } = useTipRows();
   const avatars = useAvatars();
+  const phones = usePhones(); // only filled on manager devices
+  // 📞 button next to a name (shows only when a number is saved)
+  const callLink = (tech, size = 30) => {
+    const ph = phones[phoneKey(tech.name)];
+    if (!ph || !canEdit) return null;
+    return (
+      <a
+        href={telHref(ph)}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="shrink-0 rounded-full bg-sky-50 border border-sky-200 text-sky-700 flex items-center justify-center active:scale-90"
+        style={{ width: size, height: size }}
+        aria-label={`Call ${tech.name}`}
+      >
+        <PhoneCall size={Math.round(size * 0.48)} />
+      </a>
+    );
+  };
   const tipByKey = new Map((tipRows || []).map((r) => [r.name_key || tipKey(r.name), r]));
 
   useEffect(() => {
@@ -97,7 +115,8 @@ export default function App() {
   }
 
   // Save from the technician form: tip info first (the database checks it), then the shared staff list
-  async function saveTech({ oldName, name, zelle, zelleQr, venmo, venmoQr }) {
+  async function saveTech({ oldName, name, zelle, zelleQr, venmo, venmoQr, phone, phoneChanged }) {
+    if (phoneChanged) await savePhone({ oldName, name, phone });
     const hasTipInfo = Boolean(zelle || venmo || zelleQr || venmoQr);
     const savedTip = tipByKey.get(tipKey(oldName || name));
     if (hasTipInfo || savedTip) {
@@ -529,6 +548,7 @@ export default function App() {
                             </span>
                             <Avatar name={tech.name} size={32} ring="border-emerald-200" />
                             <span className="font-bold text-brand-charcoal text-base truncate">{tech.name}</span>
+                            {callLink(tech)}
                           </div>
                           {canEdit && <div className="flex items-center gap-1">
                             <button onClick={() => callTechnician(tech.id, true)} className={callBtn}>CALL</button>
@@ -648,6 +668,7 @@ export default function App() {
                             <div className="font-bold text-brand-charcoal text-base flex items-center gap-1.5">
                               <span className="truncate">{tech.name}</span>
                               {isStarred && <span className="text-brand-gold font-black">★</span>}
+                              {callLink(tech, 28)}
                             </div>
                             {index === 0 && (
                               <span className="inline-block whitespace-nowrap text-[10px] uppercase tracking-wider font-bold bg-brand-gold text-white px-2 py-0.5 rounded-full">Next Up</span>

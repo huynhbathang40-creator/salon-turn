@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Upload, Trash2, Loader2, Camera, QrCode, Sparkles, Check } from "lucide-react";
+import { X, Upload, Trash2, Loader2, Camera, QrCode, Sparkles, Check, Phone } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import { getQr, qrFileToDataUrl, tipKey, useTipRows } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
+import { usePhones, phoneKey, phoneFromZelle, prettyPhone } from "./phones.js";
 
 // Add or edit a technician: name + Zelle (phone/email, QR) + Venmo (username, QR) + picture.
 // At least one way to receive tips (Zelle or Venmo) is required.
@@ -13,6 +14,11 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
   const existing = tech ? (rows || []).find((r) => (r.name_key || tipKey(r.name)) === tipKey(tech.name)) : null;
 
   const [name, setName] = useState(tech?.name || initialName);
+  const phones = usePhones();
+  const savedPhone = tech ? phones[phoneKey(tech.name)] || "" : "";
+  const [phone, setPhone] = useState(savedPhone ? prettyPhone(savedPhone) : "");
+  const phoneTouched = useRef(false);
+  useEffect(() => { if (!phoneTouched.current && savedPhone) setPhone(prettyPhone(savedPhone)); }, [savedPhone]);
   const [zelle, setZelle] = useState(existing?.zelle || "");
   const [venmo, setVenmo] = useState(existing?.venmo || "");
   const [savedQr, setSavedQr] = useState({ zelle_qr: null, venmo_qr: null }); // pictures already saved
@@ -57,7 +63,9 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
       return setError("Keep Zelle or Venmo (at least one). To stop tips, remove the technician.");
     setBusy(true);
     try {
-      await onSave({ oldName: tech?.name, name: n, zelle: zelle.trim(), zelleQr, venmo: venmo.trim().replace(/^@/, ""), venmoQr });
+      const digits = phone.replace(/[^0-9+]/g, "");
+      if (digits && !/^\+?\d{7,15}$/.test(digits)) throw new Error("Phone number looks wrong.");
+      await onSave({ oldName: tech?.name, name: n, zelle: zelle.trim(), zelleQr, venmo: venmo.trim().replace(/^@/, ""), venmoQr, phone: digits, phoneChanged: digits !== savedPhone || (tech && tech.name !== n) });
       onClose();
     } catch (err) {
       setError(err.message || "Could not save. Check the internet connection.");
@@ -109,6 +117,29 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kelly" className={input} autoFocus={isNew && !initialName} />
           </label>
         </div>
+
+        {/* phone for the call button (private: only manager devices can see it) */}
+        <label className="block">
+          <span className="block text-xs font-bold text-brand-softSlate mb-1">Phone (for the 📞 call button, optional)</span>
+          <div className="relative">
+            <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-softSlate" />
+            <input
+              value={phone}
+              onChange={(e) => { phoneTouched.current = true; setPhone(e.target.value); }}
+              placeholder="(561) 555-1234"
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              className={input + " pl-9"}
+            />
+          </div>
+          {!phone && phoneFromZelle(zelle) && (
+            <button type="button" onClick={() => { phoneTouched.current = true; setPhone(prettyPhone(phoneFromZelle(zelle))); }} className="mt-1.5 text-xs font-semibold text-brand-gold underline">
+              Use the Zelle number {prettyPhone(phoneFromZelle(zelle))}
+            </button>
+          )}
+          <span className="block text-[11px] text-brand-softSlate mt-1">Only devices with the manager PIN can see phone numbers.</span>
+        </label>
 
         <p className="text-xs text-brand-softSlate -mb-1">Tip info (optional for new technicians, can be added later): Zelle, Venmo, or both.</p>
 
