@@ -33,12 +33,12 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        // tip staff list + QR images: show the saved copy instantly, refresh in the background
+        // tip staff list + QR images: always the latest when online; the saved copy only when offline
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith("/rest/v1/tip_staff"),
-            handler: "StaleWhileRevalidate",
-            options: { cacheName: "tip-staff", expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 3600 } },
+            handler: "NetworkFirst",
+            options: { cacheName: "tip-staff-v2", networkTimeoutSeconds: 4, expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 3600 } },
           },
         ],
       },

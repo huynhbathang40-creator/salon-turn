@@ -22,6 +22,10 @@ const updateSW = registerSW({
 });
 void updateSW;
 
+// drop the old tip cache that kept showing QR screenshots after they were cleaned
+if ("caches" in window) caches.delete("tip-staff").catch(() => {});
+try { localStorage.removeItem("salon-turn-tips-list-v1"); } catch { /* ignore */ }
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
