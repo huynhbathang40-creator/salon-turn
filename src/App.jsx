@@ -14,6 +14,8 @@ import ManagerButton from "./ManagerButton.jsx";
 import { useManager } from "./auth.js";
 import TechEditor from "./TechEditor.jsx";
 import { useTipRows, saveTechTip, deleteTechTip, tipKey } from "./tips.js";
+import { sortByName } from "./staff.js";
+import { useAvatars, saveAvatar, removeAvatar, nameKey } from "./avatars.js";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -59,6 +61,7 @@ export default function App() {
   const [avatarFor, setAvatarFor] = useState(null); // tech name whose picture is being changed
   const [techEditor, setTechEditor] = useState(null); // { tech } to edit, or { initialName } to add
   const { rows: tipRows } = useTipRows();
+  const avatars = useAvatars();
   const tipByKey = new Map((tipRows || []).map((r) => [r.name_key || tipKey(r.name), r]));
 
   useEffect(() => {
@@ -95,7 +98,15 @@ export default function App() {
 
   // Save from the technician form: tip info first (the database checks it), then the shared staff list
   async function saveTech({ oldName, name, zelle, zelleQr, venmo, venmoQr }) {
-    await saveTechTip({ oldName, name, zelle, zelleQr, venmo, venmoQr });
+    const hasTipInfo = Boolean(zelle || venmo || zelleQr || venmoQr);
+    const savedTip = tipByKey.get(tipKey(oldName || name));
+    if (hasTipInfo || savedTip) {
+      await saveTechTip({ oldName, name, zelle, zelleQr, venmo, venmoQr });
+    } else if (oldName && oldName !== name && avatars[nameKey(oldName)]) {
+      // no tip info yet: still keep the picture with the person when renamed
+      await saveAvatar(name, avatars[nameKey(oldName)]);
+      await removeAvatar(oldName);
+    }
     if (!oldName) {
       const id = "tech-" + newId();
       setData((p) => (p.technicians.some((t) => tipKey(t.name) === tipKey(name)) ? p : { ...p, technicians: [...p.technicians, { id, name }] }));
@@ -143,6 +154,7 @@ export default function App() {
 
   function addToStandby(id) {
     if (data.standby.includes(id)) return notify("Already in Standby.");
+    if (data.turnPosition.includes(id)) return notify("Already in the turn order.");
     setData((p) => ({ ...p, standby: [...p.standby, id] }));
     notify("Added to Standby.");
   }
@@ -253,7 +265,8 @@ export default function App() {
     );
 
   const isCloud = store.mode === "cloud";
-  const availableForStandby = data.technicians.filter((t) => !data.standby.includes(t.id));
+  const sortedTechs = sortByName(data.technicians); // A–Z, owners last
+  const isWorking = (id) => data.standby.includes(id) || data.turnPosition.includes(id); // already in Standby or Turn order
   const activeStandby = data.standby.map(getTechnician).filter(Boolean);
   const activeTurn = data.turnPosition.map(getTechnician).filter(Boolean);
   const starredInTurn = activeTurn.filter((t) => data.starredIds.includes(t.id));
@@ -303,7 +316,7 @@ export default function App() {
       {tab === "tips" ? (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
           <TipsView
-            technicians={data.technicians}
+            technicians={sortByName(data.technicians)}
             canEdit={canEdit}
             onEditTech={(name) => canEdit && setTechEditor({ tech: data.technicians.find((t) => t.name === name) || null, initialName: name })}
           />
@@ -390,7 +403,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
-                  {data.technicians.map((tech) => (
+                  {sortedTechs.map((tech) => (
                     <div key={tech.id} className="p-3.5 bg-brand-warmIvory/60 border border-brand-borderLight rounded-2xl flex flex-wrap items-center justify-between gap-3">
                       {editingId === tech.id ? (
                         <div className="flex items-center gap-2 w-full">
@@ -529,17 +542,29 @@ export default function App() {
                   </SortableList>
                 )}
 
-                {canEdit && availableForStandby.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-3 mt-2 border-t border-emerald-200/70">
-                    {availableForStandby.map((tech) => (
-                      <button
-                        key={tech.id}
-                        onClick={() => addToStandby(tech.id)}
-                        className="px-3 py-2 bg-white border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900"
-                      >
-                        + {tech.name}
-                      </button>
-                    ))}
+                {canEdit && sortedTechs.length > 0 && (
+                  <div className="pt-3 mt-2 border-t border-emerald-200/70">
+                    <div className="flex flex-wrap gap-1.5">
+                      {sortedTechs.map((tech) => {
+                        const working = isWorking(tech.id);
+                        return (
+                          <button
+                            key={tech.id}
+                            onClick={() => !working && addToStandby(tech.id)}
+                            disabled={working}
+                            className={`px-3 py-2 rounded-xl text-xs font-semibold border transition ${
+                              working
+                                ? "bg-slate-100 border-slate-200 text-slate-400 line-through decoration-slate-300 cursor-not-allowed"
+                                : "bg-white border-emerald-200 text-emerald-900 active:scale-95"
+                            }`}
+                            aria-label={working ? `${tech.name} is already working` : `Add ${tech.name} to standby`}
+                          >
+                            {working ? tech.name : `+ ${tech.name}`}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-emerald-900/60 mt-2">Grey = already working today (in Standby or Turn order).</p>
                   </div>
                 )}
               </div>

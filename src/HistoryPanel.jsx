@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { History, RotateCcw, Users, ListOrdered, Clock } from "lucide-react";
+import { staffOrder } from "./staff.js";
 
 const formatTime = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const formatShort = (t) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -16,7 +17,7 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Group a day's calls by technician, in the order each tech got their first turn
+// Group a day's calls by technician (A–Z, owners last)
 function groupByTech(history, technicians) {
   const groups = new Map();
   for (const e of [...history].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))) {
@@ -27,7 +28,7 @@ function groupByTech(history, technicians) {
     }
     groups.get(key).entries.push(e);
   }
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) => staffOrder(a.name, b.name)); // A–Z, owners last
 }
 
 const tabBtn = (active) =>

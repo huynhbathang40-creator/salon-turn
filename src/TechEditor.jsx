@@ -52,7 +52,9 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
     const n = name.trim().replace(/\s+/g, " ");
     if (!n) return setError("Enter the technician's name.");
     if (technicians.some((t) => t.id !== tech?.id && tipKey(t.name) === tipKey(n))) return setError("Another technician already has this name.");
-    if (!zelle.trim() && !venmo.trim() && !shownZelleQr && !shownVenmoQr) return setError("Add Zelle or Venmo (at least one).");
+    // tip info is optional for new people; someone who already has it must keep at least one way to be tipped
+    if (existing && !zelle.trim() && !venmo.trim() && !shownZelleQr && !shownVenmoQr)
+      return setError("Keep Zelle or Venmo (at least one). To stop tips, remove the technician.");
     setBusy(true);
     try {
       await onSave({ oldName: tech?.name, name: n, zelle: zelle.trim(), zelleQr, venmo: venmo.trim().replace(/^@/, ""), venmoQr });
@@ -108,7 +110,7 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
           </label>
         </div>
 
-        <p className="text-xs text-brand-softSlate -mb-1">Tip info: fill Zelle, Venmo, or both (at least one is required).</p>
+        <p className="text-xs text-brand-softSlate -mb-1">Tip info (optional for new technicians, can be added later): Zelle, Venmo, or both.</p>
 
         <PaymentBox
           label="Zelle"
