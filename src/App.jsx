@@ -12,6 +12,8 @@ import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
 import { useManager } from "./auth.js";
+import TechEditor from "./TechEditor.jsx";
+import { useTipRows, saveTechTip, deleteTechTip, tipKey } from "./tips.js";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
 function moveTo(list, id, overId) {
@@ -55,6 +57,9 @@ export default function App() {
   const [confirmRemoveId, setConfirmRemoveId] = useState(null); // step 1 of removing a turn
   const [lastRemoved, setLastRemoved] = useState(null); // for the Undo button
   const [avatarFor, setAvatarFor] = useState(null); // tech name whose picture is being changed
+  const [techEditor, setTechEditor] = useState(null); // { tech } to edit, or { initialName } to add
+  const { rows: tipRows } = useTipRows();
+  const tipByKey = new Map((tipRows || []).map((r) => [r.name_key || tipKey(r.name), r]));
 
   useEffect(() => {
     let stop = () => {};
@@ -84,10 +89,33 @@ export default function App() {
     const name = newName.trim();
     if (!name) return notify("Please enter a technician name.");
     if (data.technicians.some((t) => t.name.toLowerCase() === name.toLowerCase())) return notify("This technician already exists.");
-    const id = "tech-" + newId();
-    setData((p) => ({ ...p, technicians: [...p.technicians, { id, name }] }));
+    setTechEditor({ initialName: name });
     setNewName("");
-    notify(`${name} added.`);
+  }
+
+  // Save from the technician form: tip info first (the database checks it), then the shared staff list
+  async function saveTech({ oldName, name, zelle, zelleQr, venmo, venmoQr }) {
+    await saveTechTip({ oldName, name, zelle, zelleQr, venmo, venmoQr });
+    if (!oldName) {
+      const id = "tech-" + newId();
+      setData((p) => (p.technicians.some((t) => tipKey(t.name) === tipKey(name)) ? p : { ...p, technicians: [...p.technicians, { id, name }] }));
+      notify(`${name} added to Turns and Tips.`);
+    } else {
+      if (oldName !== name) setData((p) => ({ ...p, technicians: p.technicians.map((t) => (t.name === oldName ? { ...t, name } : t)) }));
+      notify(`${name} saved.`);
+    }
+  }
+
+  async function deleteTech(tech) {
+    await deleteTechTip(tech.name);
+    setData((p) => ({
+      ...p,
+      technicians: p.technicians.filter((t) => t.id !== tech.id),
+      standby: p.standby.filter((x) => x !== tech.id),
+      turnPosition: p.turnPosition.filter((x) => x !== tech.id),
+      starredIds: p.starredIds.filter((x) => x !== tech.id),
+    }));
+    notify(`${tech.name} removed.`);
   }
 
   function saveTechnicianName(id) {
@@ -274,7 +302,11 @@ export default function App() {
 
       {tab === "tips" ? (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
-          <TipsView canEdit={canEdit} />
+          <TipsView
+            technicians={data.technicians}
+            canEdit={canEdit}
+            onEditTech={(name) => canEdit && setTechEditor({ tech: data.technicians.find((t) => t.name === name) || null, initialName: name })}
+          />
         </main>
       ) : (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow space-y-6 sm:space-y-8">
@@ -341,7 +373,7 @@ export default function App() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Enter technician name..."
+                  placeholder="New technician name..."
                   className="flex-1 min-w-0 bg-brand-warmIvory border border-brand-borderLight rounded-2xl px-4 py-2.5 text-base sm:text-sm focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold transition placeholder:text-slate-400"
                 />
                 <button type="submit" className="bg-brand-gold hover:bg-brand-goldHover text-white font-semibold text-xs uppercase tracking-wider px-5 py-2.5 rounded-2xl transition shadow-sm active:scale-95 flex items-center gap-1.5">
@@ -385,19 +417,32 @@ export default function App() {
                                 <Camera size={9} />
                               </span>
                             </span>
-                            <span className="font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
+                            <span className="min-w-0">
+                              <span className="block font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
+                              {tipRows && (() => {
+                                const tip = tipByKey.get(tipKey(tech.name));
+                                if (!tip) return canEdit ? <span className="text-[10px] font-bold text-amber-700">No Zelle / Venmo</span> : null;
+                                return (
+                                  <span className="flex gap-1 mt-0.5">
+                                    {tip.zelle && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-[#f3e8ff] text-[#7414ca]">ZELLE</span>}
+                                    {tip.venmo && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-[#e6f4ff] text-[#008CFF]">VENMO</span>}
+                                    {!tip.zelle && !tip.venmo && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-slate-100 text-slate-600">QR</span>}
+                                  </span>
+                                );
+                              })()}
+                            </span>
                           </button>
                           {canEdit && <div className="flex items-center gap-2">
                             <button onClick={() => callTechnician(tech.id)} className={callBtn}>CALL</button>
                             <button
-                              onClick={() => { setEditingId(tech.id); setEditingName(tech.name); }}
+                              onClick={() => setTechEditor({ tech })}
                               className="px-2.5 py-2 bg-white border border-brand-borderLight text-brand-softSlate rounded-xl"
-                              aria-label="Edit name"
+                              aria-label={`Edit ${tech.name}`}
                             >
                               <Pencil size={13} />
                             </button>
                             <button
-                              onClick={() => deleteTechnician(tech.id)}
+                              onClick={() => setTechEditor({ tech })}
                               className="px-2.5 py-2 bg-white border border-brand-borderLight text-rose-600 rounded-xl"
                               aria-label="Delete"
                             >
@@ -698,6 +743,16 @@ export default function App() {
       </footer>
 
       {/* TOAST: fixed at bottom so it shows wherever you scrolled */}
+      {techEditor && canEdit && (
+        <TechEditor
+          tech={techEditor.tech || null}
+          initialName={techEditor.initialName || ""}
+          technicians={data.technicians}
+          onSave={saveTech}
+          onDelete={deleteTech}
+          onClose={() => setTechEditor(null)}
+        />
+      )}
       {avatarFor && canEdit && <AvatarEditor name={avatarFor} onClose={() => setAvatarFor(null)} onSaved={notify} />}
       {lastRemoved && (
         <div className="fixed left-4 right-4 bottom-4 sm:left-auto sm:right-6 sm:w-96 z-50 p-3 bg-brand-charcoal text-white text-sm rounded-xl shadow-lg flex items-center justify-between gap-3 border border-rose-400/50 toast-in mb-safe">

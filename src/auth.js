@@ -4,8 +4,8 @@ import { getClient, hasCloud } from "./db.js";
 // Manager mode: only devices that entered the PIN can change anything. Everyone else with the link can only look.
 // The database itself refuses changes without a valid session, so hiding buttons is not the only protection.
 const TOKEN_KEY = "salon-turn-manager-token";
-// Paused for now (owner asked to turn it off). Set to true to bring back the PIN lock.
-export const LOCK_ENABLED = false;
+// Set to false to pause the PIN lock (the database check in _is_manager must match).
+export const LOCK_ENABLED = true;
 
 let token = (() => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } })();
 let state = { isManager: !LOCK_ENABLED || !hasCloud || Boolean(token), status: "ready" }; // optimistic until checked
