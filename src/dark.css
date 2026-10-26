@@ -1,0 +1,71 @@
+/* Dark mode: applied when <html> has class "dark" (chosen per device). Light mode is untouched.
+   QR code boxes keep a white background (class qr-surface) so bank apps can scan them. */
+html.dark { color-scheme: dark; }
+html.dark body { background-color: #121216; color: #edeae4; }
+
+/* surfaces */
+html.dark .bg-brand-cream { background-color: #121216; }
+html.dark .bg-white:not(.qr-surface) { background-color: #1c1c22; }
+html.dark .bg-white\/90 { background-color: rgba(28, 28, 34, 0.9); }
+html.dark .bg-white\/70 { background-color: rgba(28, 28, 34, 0.7); }
+html.dark .bg-brand-warmIvory { background-color: #25252c; }
+html.dark .bg-brand-warmIvory\/60 { background-color: rgba(37, 37, 44, 0.6); }
+html.dark .bg-brand-lightGold { background-color: #2f2817; }
+html.dark .bg-brand-lightGold\/50 { background-color: rgba(47, 40, 23, 0.5); }
+html.dark .bg-brand-borderLight\/70 { background-color: rgba(60, 60, 68, 0.7); }
+html.dark .bg-brand-charcoal { background-color: #2c2c35; }
+html.dark .hero-dots { background-color: #1c1c22; background-image: radial-gradient(rgba(197, 160, 89, 0.22) 1px, transparent 1px); }
+
+/* text */
+html.dark .text-brand-charcoal { color: #edeae4; }
+html.dark .text-brand-softSlate { color: #a5a5af; }
+html.dark .text-brand-gold { color: #d6b36c; }
+html.dark .text-slate-700 { color: #d4d4d8; }
+html.dark .text-slate-600, html.dark .text-slate-400 { color: #8d8d97; }
+html.dark .text-slate-300 { color: #5c5c66; }
+html.dark .placeholder\:text-slate-400::placeholder { color: #75757f; }
+html.dark input::placeholder { color: #75757f; }
+
+/* borders */
+html.dark .border-brand-borderLight { border-color: #34343c; }
+html.dark .divide-brand-borderLight > * + * { border-color: #34343c; }
+html.dark .border-brand-borderGold, html.dark .border-brand-borderGold\/50,
+html.dark .border-brand-borderGold\/60, html.dark .border-brand-borderGold\/70 { border-color: #5a4a28; }
+html.dark .border-white { border-color: #1c1c22; }
+html.dark .border-slate-200, html.dark .border-slate-300 { border-color: #3c3c45; }
+html.dark .border-brand-charcoal { border-color: #4a4a55; }
+
+/* greys */
+html.dark .bg-slate-100, html.dark .bg-slate-200 { background-color: #2a2a31; }
+html.dark .bg-slate-300 { background-color: #4a4a52; }
+html.dark .decoration-slate-300 { text-decoration-color: #4a4a52; }
+
+/* green (standby, manager) */
+html.dark .bg-emerald-50, html.dark .bg-emerald-50\/50 { background-color: rgba(16, 185, 129, 0.12); }
+html.dark .border-emerald-200, html.dark .border-emerald-200\/70 { border-color: rgba(16, 185, 129, 0.35); }
+html.dark .text-emerald-800, html.dark .text-emerald-900 { color: #6ee7b7; }
+html.dark .text-emerald-900\/60 { color: rgba(110, 231, 183, 0.65); }
+
+/* blue (+1 / under $30, call) */
+html.dark .bg-sky-50 { background-color: rgba(56, 189, 248, 0.14); }
+html.dark .bg-sky-100 { background-color: rgba(56, 189, 248, 0.22); }
+html.dark .border-sky-200 { border-color: rgba(56, 189, 248, 0.35); }
+html.dark .text-sky-700, html.dark .text-sky-800 { color: #7dd3fc; }
+html.dark .text-sky-800\/70 { color: rgba(125, 211, 252, 0.75); }
+
+/* red (remove, undo) */
+html.dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.12); }
+html.dark .border-rose-200, html.dark .border-rose-300 { border-color: rgba(244, 63, 94, 0.4); }
+html.dark .text-rose-600, html.dark .text-rose-700, html.dark .text-rose-800, html.dark .text-rose-900 { color: #fda4af; }
+html.dark .text-rose-800\/70 { color: rgba(253, 164, 175, 0.75); }
+
+/* amber (warnings, priority) */
+html.dark .bg-amber-50, html.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.14); }
+html.dark .border-amber-200, html.dark .border-amber-300 { border-color: rgba(245, 158, 11, 0.4); }
+html.dark .text-amber-700, html.dark .text-amber-800, html.dark .text-amber-900 { color: #fcd34d; }
+
+/* tip screens with brand colors set inline */
+html.dark .pay-box { background-color: rgba(255, 255, 255, 0.04) !important; }
+html.dark .pay-tab-active { background-color: rgba(255, 255, 255, 0.08) !important; }
+html.dark ::-webkit-scrollbar-track { background: #121216; }
+html.dark select { background-color: #25252c; color: #edeae4; }

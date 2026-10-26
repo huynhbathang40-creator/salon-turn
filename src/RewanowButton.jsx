@@ -40,7 +40,7 @@ export default function RewanowButton() {
         aria-expanded={open}
       >
         <CalendarClock size={15} className="text-brand-gold" />
-        Rewanow
+        <span className="hidden min-[400px]:inline">Rewanow</span>
         <ChevronDown size={14} className={`transition ${open ? "rotate-180" : ""}`} />
       </button>
 

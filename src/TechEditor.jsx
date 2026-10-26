@@ -253,11 +253,11 @@ function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loadin
   }
 
   return (
-    <div className="rounded-2xl p-3.5 border border-dashed space-y-2.5" style={{ borderColor: color, background: bg }}>
+    <div className="pay-box rounded-2xl p-3.5 border border-dashed space-y-2.5" style={{ borderColor: color, background: bg }}>
       <div className="text-sm font-bold" style={{ color }}>{label}</div>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={inputClass + " bg-white"} />
       <div className="flex items-center gap-3">
-        <div className="w-24 h-24 shrink-0 rounded-xl bg-white border flex items-center justify-center overflow-hidden" style={{ borderColor: color }}>
+        <div className="w-24 h-24 shrink-0 rounded-xl bg-white qr-surface border flex items-center justify-center overflow-hidden" style={{ borderColor: color }}>
           {loading || working ? (
             <Loader2 size={18} className="animate-spin" style={{ color }} />
           ) : qr ? (

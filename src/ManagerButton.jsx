@@ -3,12 +3,14 @@ import { createPortal } from "react-dom";
 import { Lock, Unlock, X, Delete, Loader2, ShieldCheck, Gem } from "lucide-react";
 import { useManager, login, setupPin, logout, LOCK_ENABLED } from "./auth.js";
 import { hasCloud } from "./db.js";
+import { useShowCalls } from "./phones.js";
 
 const PIN_LENGTH = 6;
 
 // Header chip: "View only" (tap to enter PIN) or "Manager" (tap to lock this device)
 export default function ManagerButton({ onMessage }) {
   const { isManager } = useManager();
+  const [showCalls, setShowCalls] = useShowCalls();
   const [openPin, setOpenPin] = useState(false);
   const [menu, setMenu] = useState(false);
   if (!hasCloud || !LOCK_ENABLED) return null;
@@ -27,8 +29,23 @@ export default function ManagerButton({ onMessage }) {
       </button>
 
       {menu && (
-        <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl border border-brand-borderLight shadow-xl p-3 z-50 toast-in">
+        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-brand-borderLight shadow-xl p-3 z-50 toast-in">
           <p className="text-xs text-brand-softSlate px-1 pb-2">This device can change turns, technicians and tips.</p>
+          <label className="flex items-center justify-between gap-3 px-1 py-2.5 mb-2 border-y border-brand-borderLight cursor-pointer">
+            <span className="text-sm font-semibold text-brand-charcoal">
+              📞 Call buttons on this device
+              <span className="block text-[11px] font-normal text-brand-softSlate">Turn on for your own iPhone, iPad or Mac</span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showCalls}
+              onClick={() => setShowCalls(!showCalls)}
+              className={`relative w-12 h-7 shrink-0 rounded-full transition ${showCalls ? "bg-emerald-500" : "bg-slate-300"}`}
+            >
+              <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${showCalls ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </label>
           <button
             onClick={async () => { setMenu(false); await logout(); onMessage?.("This device is now view only."); }}
             className="w-full py-2.5 rounded-xl bg-brand-charcoal text-white text-sm font-bold flex items-center justify-center gap-1.5"

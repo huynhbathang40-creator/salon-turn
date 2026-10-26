@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Salon Turn</title>
     <meta name="theme-color" content="#FFFFFF" />
+    <script>
+      // apply the saved light/dark choice before the page draws (no white flash)
+      try {
+        var t = localStorage.getItem("salon-turn-theme") || "light";
+        if (t === "dark" || (t === "auto" && matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="theme-color"]').setAttribute("content", "#1c1c22");
+        }
+      } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />

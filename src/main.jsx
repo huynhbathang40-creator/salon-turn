@@ -7,6 +7,10 @@ import "@fontsource/inter/latin-700.css";
 import "@fontsource/playfair-display/latin-600.css";
 import "@fontsource/playfair-display/latin-700.css";
 import "./index.css";
+import "./dark.css";
+import { applyTheme } from "./theme.js";
+
+applyTheme();
 import App from "./App.jsx";
 import { registerSW } from "virtual:pwa-register";
 

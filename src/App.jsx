@@ -11,11 +11,12 @@ import TipsView from "./TipsView.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
+import ThemeButton from "./ThemeButton.jsx";
 import { useManager } from "./auth.js";
 import TechEditor from "./TechEditor.jsx";
 import { useTipRows, saveTechTip, deleteTechTip, tipKey } from "./tips.js";
 import { sortByName } from "./staff.js";
-import { usePhones, savePhone, phoneKey, telHref } from "./phones.js";
+import { usePhones, savePhone, phoneKey, telHref, useShowCalls } from "./phones.js";
 import { useAvatars, saveAvatar, removeAvatar, nameKey } from "./avatars.js";
 
 // Move `id` to where `overId` is, based on the latest list (safe if another device changed it meanwhile)
@@ -64,10 +65,11 @@ export default function App() {
   const { rows: tipRows } = useTipRows();
   const avatars = useAvatars();
   const phones = usePhones(); // only filled on manager devices
+  const [showCalls] = useShowCalls(); // per device: on for iPhone, off for the salon iPad unless switched on
   // 📞 button next to a name (shows only when a number is saved)
   const callLink = (tech, size = 30) => {
     const ph = phones[phoneKey(tech.name)];
-    if (!ph || !canEdit) return null;
+    if (!ph || !canEdit || !showCalls) return null;
     return (
       <a
         href={telHref(ph)}
@@ -250,6 +252,31 @@ export default function App() {
     notify(fromStandby ? `${tech.name} called from Standby.` : `${tech.name} called.`);
   }
 
+  // Under-$30 customer: write it in today's history so the customer count is right, but keep everyone's turn
+  function logSmall(id) {
+    const tech = getTechnician(id);
+    if (!tech) return notify("Technician not found.");
+    setData((p) => ({
+      ...p,
+      history: [
+        ...p.history,
+        { id: newId(), techId: id, techName: tech.name, turnNo: p.history.length + 1, timestamp: new Date().toISOString(), kind: "small" },
+      ],
+    }));
+    notify(`+1 for ${tech.name} (under $30). Turn order unchanged.`);
+  }
+
+  // CALL tapped late: fix the time; the first recorded time is kept for reference
+  function editTime(entryId, iso) {
+    setData((p) => ({
+      ...p,
+      history: p.history.map((h) =>
+        h.id === entryId ? { ...h, timestamp: iso, originalTimestamp: h.originalTimestamp || h.timestamp, edited: true } : h
+      ),
+    }));
+    notify("Time updated.");
+  }
+
   function undoLastCall() {
     if (data.history.length === 0) return notify("There is no call to undo.");
     const lastName = data.history[data.history.length - 1].techName;
@@ -259,12 +286,13 @@ export default function App() {
       return {
         ...p,
         history: p.history.slice(0, -1),
-        turnPosition: Array.isArray(last.beforePosition)
+        turnPosition: last.kind !== "small" && Array.isArray(last.beforePosition)
           ? last.beforePosition.filter((id) => p.technicians.some((t) => t.id === id))
           : p.turnPosition,
       };
     });
-    notify(`Last call for ${lastName} undone.`);
+    const wasSmall = data.history[data.history.length - 1].kind === "small";
+    notify(wasSmall ? `Last +1 for ${lastName} undone.` : `Last call for ${lastName} undone.`);
   }
 
   function startNewDay() {
@@ -285,6 +313,31 @@ export default function App() {
 
   const isCloud = store.mode === "cloud";
   const sortedTechs = sortByName(data.technicians); // A–Z, owners last
+  const smallCount = {}; // today's under-$30 customers per tech (shown as +N)
+  for (const h of data.history) if (h.kind === "small") smallCount[h.techId] = (smallCount[h.techId] || 0) + 1;
+  const plusBadge = (tech) =>
+    smallCount[tech.id] ? (
+      <span className="shrink-0 text-[11px] font-bold px-1.5 py-px rounded-md bg-sky-100 text-sky-800" title="Under-$30 customers today">
+        +{smallCount[tech.id]}
+      </span>
+    ) : null;
+  const callPair = (tech, fromStandby = false) => (
+    <div className="flex shrink-0 rounded-xl overflow-hidden shadow-sm">
+      <button
+        onClick={() => callTechnician(tech.id, fromStandby)}
+        className="bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3 sm:px-3.5 py-2.5"
+      >
+        CALL
+      </button>
+      <button
+        onClick={() => logSmall(tech.id)}
+        className="bg-sky-50 active:bg-sky-100 text-sky-800 border-l-2 border-white font-extrabold text-xs px-2.5 py-2.5"
+        aria-label={`+1 customer under $30 for ${tech.name}`}
+      >
+        +1
+      </button>
+    </div>
+  );
   const isWorking = (id) => data.standby.includes(id) || data.turnPosition.includes(id); // already in Standby or Turn order
   const activeStandby = data.standby.map(getTechnician).filter(Boolean);
   const activeTurn = data.turnPosition.map(getTechnician).filter(Boolean);
@@ -309,6 +362,7 @@ export default function App() {
               <Calendar size={14} className="text-brand-gold" />
               <span>Business Date: <strong className="text-brand-charcoal font-semibold">{data.businessDate}</strong></span>
             </div>
+            <ThemeButton onMessage={notify} />
             <ManagerButton onMessage={notify} />
             <RewanowButton />
             <div
@@ -369,7 +423,7 @@ export default function App() {
                 <span className="font-serif text-2xl font-bold text-brand-gold">{data.turnPosition.length}</span>
               </div>
               <div className="px-4 py-2.5 rounded-2xl bg-brand-warmIvory border border-brand-borderLight text-center min-w-[120px]">
-                <span className="block text-[10px] uppercase tracking-wider text-brand-softSlate font-medium">Calls Today</span>
+                <span className="block text-[10px] uppercase tracking-wider text-brand-softSlate font-medium">Customers Today</span>
                 <span className="font-serif text-2xl font-bold text-brand-charcoal">{data.history.length}</span>
               </div>
             </div>
@@ -450,7 +504,7 @@ export default function App() {
                               </span>
                             </span>
                             <span className="min-w-0">
-                              <span className="block font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
+                              <span className="flex items-center gap-1.5 font-bold text-brand-charcoal text-sm"><span className="truncate">{tech.name}</span>{plusBadge(tech)}</span>
                               {tipRows && (() => {
                                 const tip = tipByKey.get(tipKey(tech.name));
                                 if (!tip) return canEdit ? <span className="text-[10px] font-bold text-amber-700">No Zelle / Venmo</span> : null;
@@ -465,7 +519,7 @@ export default function App() {
                             </span>
                           </button>
                           {canEdit && <div className="flex items-center gap-2">
-                            <button onClick={() => callTechnician(tech.id)} className={callBtn}>CALL</button>
+                            {callPair(tech)}
                             <button
                               onClick={() => setTechEditor({ tech })}
                               className="px-2.5 py-2 bg-white border border-brand-borderLight text-brand-softSlate rounded-xl"
@@ -540,18 +594,19 @@ export default function App() {
                     {(id, index) => {
                       const tech = getTechnician(id);
                       return (
-                        <div className="p-3 bg-white border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-3 bg-white border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
+                          <div className="flex items-center gap-2.5 min-w-[150px] flex-1">
                             <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                             <span className="w-7 h-7 shrink-0 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
                               S{index + 1}
                             </span>
                             <Avatar name={tech.name} size={32} ring="border-emerald-200" />
                             <span className="font-bold text-brand-charcoal text-base truncate">{tech.name}</span>
+                            {plusBadge(tech)}
                             {callLink(tech)}
                           </div>
-                          {canEdit && <div className="flex items-center gap-1">
-                            <button onClick={() => callTechnician(tech.id, true)} className={callBtn}>CALL</button>
+                          {canEdit && <div className="flex items-center gap-1 ml-auto">
+                            {callPair(tech, true)}
                             <button onClick={() => removeFromStandby(tech.id)} className="p-2 text-rose-600 rounded-lg" aria-label="Remove from standby">
                               <X size={16} />
                             </button>
@@ -636,7 +691,7 @@ export default function App() {
                       );
                     return (
                       <div
-                        className={`w-full p-3 sm:p-4 rounded-2xl border flex items-center justify-between gap-2 ${
+                        className={`w-full p-3 sm:p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5 ${
                           isStarred
                             ? "bg-amber-50 border-brand-gold ring-1 ring-brand-gold/30"
                             : index === 0
@@ -644,7 +699,7 @@ export default function App() {
                             : "bg-brand-warmIvory border-brand-borderLight"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-[118px] flex-1">
                           <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                           <div
                             className={`hidden sm:flex w-9 h-9 shrink-0 rounded-xl items-center justify-center font-serif font-bold text-sm ${
@@ -668,6 +723,7 @@ export default function App() {
                             <div className="font-bold text-brand-charcoal text-base flex items-center gap-1.5">
                               <span className="truncate">{tech.name}</span>
                               {isStarred && <span className="text-brand-gold font-black">★</span>}
+                              {plusBadge(tech)}
                               {callLink(tech, 28)}
                             </div>
                             {index === 0 && (
@@ -676,7 +732,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {canEdit && <div className="flex items-center gap-1.5 shrink-0">
+                        {canEdit && <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                           <button
                             onClick={() => toggleStar(tech.id)}
                             className={`w-9 h-9 rounded-xl text-base font-bold flex items-center justify-center ${
@@ -686,7 +742,7 @@ export default function App() {
                           >
                             {isStarred ? "★" : "☆"}
                           </button>
-                          <button onClick={() => callTechnician(tech.id)} className={callBtn + " px-4"}>CALL</button>
+                          {callPair(tech)}
                           <button
                             onClick={() => setConfirmRemoveId(id)}
                             className="w-9 h-9 rounded-xl bg-white border border-brand-borderLight text-rose-600 flex items-center justify-center"
@@ -709,7 +765,7 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} canEdit={canEdit} />
+          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} onEditTime={editTime} canEdit={canEdit} />
 
           <div className="space-y-6 sm:space-y-8">
             {/* 5. NEW DAY */}

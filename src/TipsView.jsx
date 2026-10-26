@@ -158,7 +158,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit }) {
               <button
                 key={m}
                 onClick={() => { setMethod(m); setCopied(false); }}
-                className="py-2.5 rounded-xl border-2 font-bold text-sm capitalize"
+                className={`py-2.5 rounded-xl border-2 font-bold text-sm capitalize ${method === m ? "pay-tab-active" : ""}`}
                 style={method === m ? { borderColor: m === "zelle" ? "#7414ca" : "#008CFF", color: m === "zelle" ? "#7414ca" : "#008CFF", background: m === "zelle" ? "#f3e8ff" : "#e6f4ff" } : { borderColor: "#E8E8EC", color: "#4A4A52" }}
               >
                 {m}
@@ -171,7 +171,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit }) {
           <p className="text-xs font-bold tracking-wider mb-2" style={{ color }}>
             {image || !qr ? `SCAN ${method.toUpperCase()} QR CODE` : method.toUpperCase()}
           </p>
-          <div className="rounded-2xl p-3 bg-white border-2 border-dashed" style={{ borderColor: color }}>
+          <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: color }}>
             {!qr ? (
               <div className="w-[min(70vw,280px)] aspect-square flex items-center justify-center"><Loader2 className="animate-spin" style={{ color }} /></div>
             ) : image ? (
