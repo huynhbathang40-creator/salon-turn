@@ -11,29 +11,51 @@ function loadImage(src) {
   });
 }
 
-function pixels(img, maxSide) {
-  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+// crop: [x, y, w, h] as fractions of the picture; threshold: turn the picture pure black/white (helps colored QRs)
+function pixels(img, maxSide, crop = [0, 0, 1, 1], threshold = null) {
+  const W = img.naturalWidth, H = img.naturalHeight;
+  const sx = crop[0] * W, sy = crop[1] * H, sw = crop[2] * W, sh = crop[3] * H;
+  const scale = Math.min(1, maxSide / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0, w, h);
-  return ctx.getImageData(0, 0, w, h);
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  if (threshold !== null) {
+    const d = data.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] < threshold ? 0 : 255;
+      d[i] = d[i + 1] = d[i + 2] = v;
+    }
+  }
+  return data;
 }
 
 async function readQr(src) {
   const { default: jsQR } = await import("jsqr");
   const img = await loadImage(src);
-  // try a few sizes: small QRs inside big screenshots read better at full size, noisy photos at smaller sizes
+  const tryRead = (size, crop, threshold) => {
+    const data = pixels(img, size, crop, threshold);
+    return jsQR(data.data, data.width, data.height, { inversionAttempts: "attemptBoth" })?.data || null;
+  };
+  // 1) the whole picture at a few sizes (most screenshots)
   for (const size of [1400, 2200, 900, 600]) {
-    const data = pixels(img, size);
-    const found = jsQR(data.data, data.width, data.height, { inversionAttempts: "attemptBoth" });
-    if (found?.data) return found.data;
+    const t = tryRead(size, undefined, null);
+    if (t) return t;
   }
+  // 2) harder pictures (colored Venmo codes, busy screenshots): black/white + crop away banners
+  const crops = [[0, 0, 1, 1], [0, 0.1, 1, 0.7], [0.05, 0.15, 0.9, 0.6], [0, 0.2, 1, 0.5], [0.1, 0.1, 0.8, 0.8]];
+  for (const threshold of [160, 128, 190, 100])
+    for (const crop of crops)
+      for (const size of [1600, 1000, 700]) {
+        const t = tryRead(size, crop, threshold);
+        if (t) return t;
+      }
   return null;
 }
 
