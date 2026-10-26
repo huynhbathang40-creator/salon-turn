@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle } from "lucide-react";
+import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle, Sparkles } from "lucide-react";
 import Avatar from "./Avatar.jsx";
-import { useTipRows, getQr, tipKey } from "./tips.js";
+import { useTipRows, getQr, tipKey, saveTechTip } from "./tips.js";
+import { cleanQr } from "./qrclean.js";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
 // each person's Zelle / Venmo comes from the tip info saved for that name.
@@ -35,6 +36,8 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           </span>
         </div>
       )}
+
+      {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows} />}
 
       <div className="relative max-w-md mx-auto">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-softSlate" />
@@ -195,6 +198,83 @@ function TipModal({ name, tip, onClose, canEdit, onEdit }) {
           {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ---------- manager: clean every saved QR screenshot in one go ---------- */
+
+function CleanAllQr({ rows }) {
+  const [phase, setPhase] = useState("idle"); // idle | confirm | running | done
+  const [progress, setProgress] = useState({ done: 0, total: 0, name: "" });
+  const [result, setResult] = useState({ cleaned: [], unreadable: [], failed: [] });
+
+  async function run() {
+    setPhase("running");
+    const cleaned = [], unreadable = [], failed = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      setProgress({ done: i, total: rows.length, name: r.name });
+      try {
+        const saved = await getQr(r.name_key || tipKey(r.name));
+        const z = saved.zelle_qr ? await cleanQr(saved.zelle_qr).catch(() => null) : null;
+        const v = saved.venmo_qr ? await cleanQr(saved.venmo_qr).catch(() => null) : null;
+        if ((saved.zelle_qr && !z) || (saved.venmo_qr && !v)) unreadable.push(r.name);
+        if (z || v) {
+          await saveTechTip({
+            oldName: r.name, name: r.name, zelle: r.zelle || "", venmo: r.venmo || "",
+            zelleQr: z ? z.dataUrl : undefined, venmoQr: v ? v.dataUrl : undefined,
+          });
+          cleaned.push(r.name);
+        }
+      } catch (e) {
+        console.error(e);
+        failed.push(r.name);
+      }
+    }
+    setResult({ cleaned, unreadable, failed });
+    setPhase("done");
+  }
+
+  return (
+    <div className="max-w-xl mx-auto rounded-2xl border border-brand-borderLight bg-white p-3.5 text-sm">
+      {phase === "idle" && (
+        <button onClick={() => setPhase("confirm")} className="w-full flex items-center justify-center gap-2 font-bold text-brand-charcoal">
+          <Sparkles size={16} className="text-brand-gold" /> Clean up all QR codes
+        </button>
+      )}
+      {phase === "confirm" && (
+        <div className="space-y-2.5">
+          <p className="text-brand-softSlate">
+            Finds the QR inside every saved screenshot and replaces it with a clean QR that opens the same account.
+            Pictures where no QR can be read are left unchanged.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={run} className="flex-1 py-2.5 rounded-xl bg-brand-gold text-white font-bold">Clean up {rows.length} technicians</button>
+            <button onClick={() => setPhase("idle")} className="px-4 py-2.5 rounded-xl border border-brand-borderLight font-semibold">Cancel</button>
+          </div>
+        </div>
+      )}
+      {phase === "running" && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 font-semibold">
+            <Loader2 size={16} className="animate-spin text-brand-gold" /> Cleaning {progress.name}… ({progress.done + 1}/{progress.total})
+          </div>
+          <div className="h-2 rounded-full bg-brand-warmIvory overflow-hidden">
+            <div className="h-full bg-brand-gold transition-all" style={{ width: `${(progress.done / Math.max(1, progress.total)) * 100}%` }} />
+          </div>
+        </div>
+      )}
+      {phase === "done" && (
+        <div className="space-y-1.5">
+          <p className="font-bold text-emerald-800 flex items-center gap-1.5"><Check size={16} /> Cleaned {result.cleaned.length} technicians</p>
+          {result.unreadable.length > 0 && (
+            <p className="text-amber-800">Couldn't read the QR for: <b>{result.unreadable.join(", ")}</b>. Their picture is unchanged; upload a sharper one in Edit.</p>
+          )}
+          {result.failed.length > 0 && <p className="text-rose-700">Not saved (check internet / PIN): <b>{result.failed.join(", ")}</b></p>}
+          <button onClick={() => setPhase("idle")} className="text-xs underline text-brand-softSlate">Close</button>
+        </div>
+      )}
     </div>
   );
 }

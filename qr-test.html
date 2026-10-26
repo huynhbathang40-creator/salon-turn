@@ -1,0 +1,21 @@
+<!doctype html><html><body><script type="module">
+import QRCode from "qrcode";
+import { cleanQr } from "/src/qrclean.js";
+window.run = async () => {
+  const text = "https://enroll.zellepay.com/qr-codes?data=eyJuYW1lIjoiQkFPIE5HVVlFTiIsInRva2VuIjoiNTYxNjM5MzMxMyJ9";
+  // fake phone screenshot: status bar, purple banner, name, small QR, footer text
+  const c = document.createElement("canvas"); c.width = 1170; c.height = 2532; const g = c.getContext("2d");
+  g.fillStyle = "#f4f0fa"; g.fillRect(0,0,1170,2532);
+  g.fillStyle = "#6d1ed4"; g.fillRect(0,0,1170,420); g.fillStyle="#fff"; g.font="bold 64px sans-serif"; g.fillText("9:41        Zelle", 60, 120); g.fillText("Send Money with Zelle", 140, 320);
+  g.fillStyle = "#222"; g.font = "56px sans-serif"; g.fillText("BAO NGUYEN", 380, 620);
+  const qr = document.createElement("canvas"); await QRCode.toCanvas(qr, text, { width: 640, margin: 1, color: { dark: "#2b0a5c", light: "#ffffff" } });
+  g.drawImage(qr, 265, 760);
+  g.fillStyle = "#666"; g.font = "44px sans-serif"; g.fillText("Scan this code to send money", 260, 1600); g.fillText("Share   Save   Done", 330, 2300);
+  const shot = c.toDataURL("image/jpeg", 0.85);
+  const t0 = performance.now(); const res = await cleanQr(shot); const ms = Math.round(performance.now() - t0);
+  const blank = document.createElement("canvas"); blank.width = 800; blank.height = 800; const bg = blank.getContext("2d"); bg.fillStyle="#fff"; bg.fillRect(0,0,800,800); bg.fillStyle="#000"; bg.font="60px sans-serif"; bg.fillText("no qr here", 200, 400);
+  const none = await cleanQr(blank.toDataURL());
+  document.body.innerHTML = `<img id="a" src="${shot}" style="height:500px"> <img id="b" src="${res?.dataUrl}" style="height:500px;border:1px solid #ccc">`;
+  return { found: !!res, sameText: res?.text === text, ms, noQrReturnsNull: none === null };
+};
+</script></body></html>

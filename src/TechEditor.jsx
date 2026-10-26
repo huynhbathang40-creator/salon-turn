@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Upload, Trash2, Loader2, Camera, QrCode } from "lucide-react";
+import { X, Upload, Trash2, Loader2, Camera, QrCode, Sparkles, Check } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import { getQr, qrFileToDataUrl, tipKey, useTipRows } from "./tips.js";
+import { cleanQr } from "./qrclean.js";
 
 // Add or edit a technician: name + Zelle (phone/email, QR) + Venmo (username, QR) + picture.
 // At least one way to receive tips (Zelle or Venmo) is required.
@@ -173,16 +174,46 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
 function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loading, onQr, onError, inputClass }) {
   const fileRef = useRef(null);
   const [working, setWorking] = useState(false);
+  const [status, setStatus] = useState(null); // "cleaned" | "notfound" | "original"
+  const [original, setOriginal] = useState(null); // the uploaded picture, to go back to it
 
+  // Uploaded screenshot -> find the QR inside -> clean QR (falls back to the picture itself)
   async function onFile(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setWorking(true);
+    setStatus(null);
     try {
-      onQr(await qrFileToDataUrl(file));
+      const picture = await qrFileToDataUrl(file);
+      setOriginal(picture);
+      const clean = await cleanQr(picture).catch(() => null);
+      if (clean) {
+        onQr(clean.dataUrl);
+        setStatus("cleaned");
+      } else {
+        onQr(picture);
+        setStatus("notfound");
+      }
     } catch (err) {
       onError(err.message);
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  // Clean up a picture that is already saved (e.g. the screenshots copied from the old tip page)
+  async function cleanSaved() {
+    setWorking(true);
+    try {
+      const clean = await cleanQr(qr);
+      if (clean) {
+        setOriginal(qr);
+        onQr(clean.dataUrl);
+        setStatus("cleaned");
+      } else setStatus("notfound");
+    } catch {
+      setStatus("notfound");
     } finally {
       setWorking(false);
     }
@@ -193,7 +224,7 @@ function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loadin
       <div className="text-sm font-bold" style={{ color }}>{label}</div>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={inputClass + " bg-white"} />
       <div className="flex items-center gap-3">
-        <div className="w-20 h-20 shrink-0 rounded-xl bg-white border flex items-center justify-center overflow-hidden" style={{ borderColor: color }}>
+        <div className="w-24 h-24 shrink-0 rounded-xl bg-white border flex items-center justify-center overflow-hidden" style={{ borderColor: color }}>
           {loading || working ? (
             <Loader2 size={18} className="animate-spin" style={{ color }} />
           ) : qr ? (
@@ -202,17 +233,37 @@ function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loadin
             <QrCode size={26} className="opacity-25" />
           )}
         </div>
-        <div className="flex flex-col gap-1.5">
-          <button type="button" onClick={() => fileRef.current?.click()} className="px-3 py-2 rounded-xl bg-white border text-xs font-bold flex items-center gap-1.5" style={{ borderColor: color, color }}>
+        <div className="flex flex-col items-start gap-1.5 min-w-0">
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={working} className="px-3 py-2 rounded-xl bg-white border text-xs font-bold flex items-center gap-1.5" style={{ borderColor: color, color }}>
             <Upload size={13} /> {qr ? "Change QR picture" : "Upload QR picture"}
           </button>
-          {qr && (
-            <button type="button" onClick={() => onQr("")} className="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-700 text-left">
+          {qr && status !== "cleaned" && !working && (
+            <button type="button" onClick={cleanSaved} className="px-3 py-1.5 rounded-xl bg-white/70 text-xs font-bold flex items-center gap-1.5" style={{ color }}>
+              <Sparkles size={13} /> Clean up QR
+            </button>
+          )}
+          {qr && !working && (
+            <button type="button" onClick={() => { onQr(""); setStatus(null); }} className="px-3 py-1 text-xs font-semibold text-rose-700">
               Remove QR
             </button>
           )}
         </div>
       </div>
+
+      {status === "cleaned" && (
+        <p className="text-xs text-emerald-800 flex items-start gap-1.5">
+          <Check size={14} className="shrink-0 mt-px" />
+          <span>
+            QR found and cleaned. It opens the same account.{" "}
+            {original && <button type="button" onClick={() => { onQr(original); setStatus("original"); }} className="underline">Use the original picture</button>}
+          </span>
+        </p>
+      )}
+      {status === "notfound" && (
+        <p className="text-xs text-amber-800">
+          Couldn't read a QR code in this picture, so it is kept as is. Try a sharper screenshot, or crop it to the QR in Photos first.
+        </p>
+      )}
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
     </div>
   );
