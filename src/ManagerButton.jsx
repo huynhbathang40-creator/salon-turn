@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { Lock, Unlock, X, Loader2, ShieldCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Lock, Unlock, X, Delete, Loader2, ShieldCheck, Gem } from "lucide-react";
 import { useManager, login, setupPin, logout, LOCK_ENABLED } from "./auth.js";
 import { hasCloud } from "./db.js";
+
+const PIN_LENGTH = 6;
 
 // Header chip: "View only" (tap to enter PIN) or "Manager" (tap to lock this device)
 export default function ManagerButton({ onMessage }) {
@@ -25,7 +28,7 @@ export default function ManagerButton({ onMessage }) {
 
       {menu && (
         <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl border border-brand-borderLight shadow-xl p-3 z-50 toast-in">
-          <p className="text-xs text-brand-softSlate px-1 pb-2">This device can change turns, tips pictures and settings.</p>
+          <p className="text-xs text-brand-softSlate px-1 pb-2">This device can change turns, technicians and tips.</p>
           <button
             onClick={async () => { setMenu(false); await logout(); onMessage?.("This device is now view only."); }}
             className="w-full py-2.5 rounded-xl bg-brand-charcoal text-white text-sm font-bold flex items-center justify-center gap-1.5"
@@ -35,107 +38,203 @@ export default function ManagerButton({ onMessage }) {
         </div>
       )}
 
-      {openPin && <PinModal onClose={() => setOpenPin(false)} onDone={() => { setOpenPin(false); onMessage?.("Manager mode on for this device."); }} />}
+      {/* Rendered on <body>: inside the blurred header a full-screen layer would be squeezed into the header */}
+      {openPin &&
+        createPortal(
+          <PinScreen onClose={() => setOpenPin(false)} onDone={() => { setOpenPin(false); onMessage?.("Manager mode on for this device."); }} />,
+          document.body
+        )}
     </div>
   );
 }
 
-function PinModal({ onClose, onDone }) {
+/* ---------- full-screen PIN pad, like the iPhone lock screen ---------- */
+
+function PinScreen({ onClose, onDone }) {
   const { status } = useManager();
   const setup = status === "setup";
+  // setup: "code" -> "new" -> "confirm";  normal: "pin"
+  const [step, setStep] = useState(setup ? "code" : "pin");
   const [code, setCode] = useState("");
   const [pin, setPin] = useState("");
-  const [pin2, setPin2] = useState("");
+  const [firstPin, setFirstPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const firstRef = useRef(null);
+  const [shake, setShake] = useState(0);
 
-  useEffect(() => { firstRef.current?.focus(); }, [setup]);
+  useEffect(() => { if (!setup && step === "code") setStep("pin"); }, [setup, step]);
 
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    if (setup) {
-      if (!/^\d{6,10}$/.test(pin)) return setError("PIN must be 6 to 10 digits.");
-      if (pin !== pin2) return setError("The two PINs are different.");
+  // stop the page behind from scrolling
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  function fail(msg) {
+    setError(msg);
+    setPin("");
+    setShake((n) => n + 1);
+    navigator.vibrate?.([40, 40, 40]);
+  }
+
+  async function complete(value) {
+    if (step === "new") {
+      setFirstPin(value);
+      setPin("");
+      setError("");
+      setStep("confirm");
+      return;
+    }
+    if (step === "confirm" && value !== firstPin) {
+      setFirstPin("");
+      setStep("new");
+      return fail("PINs didn't match. Choose your PIN again.");
     }
     setBusy(true);
     try {
-      if (setup) await setupPin(code, pin);
-      else await login(pin);
+      if (step === "confirm") await setupPin(code, value);
+      else await login(value);
+      navigator.vibrate?.(20);
       onDone();
     } catch (err) {
-      setError(err.message);
-      setPin("");
-      setPin2("");
+      if (step === "confirm" && /setup code/i.test(err.message)) {
+        setStep("code");
+        setFirstPin("");
+      }
+      fail(err.message);
     } finally {
       setBusy(false);
     }
   }
 
-  const input = "w-full bg-brand-warmIvory border border-brand-borderLight rounded-xl px-4 py-3 text-lg tracking-[0.3em] text-center font-bold focus:outline-none focus:border-brand-gold";
+  function press(d) {
+    if (busy || pin.length >= PIN_LENGTH) return;
+    setError("");
+    const next = pin + d;
+    setPin(next);
+    if (next.length === PIN_LENGTH) setTimeout(() => complete(next), 120);
+  }
+
+  // keyboard support (iPad with keyboard / computer)
+  useEffect(() => {
+    if (step === "code") return;
+    const onKey = (e) => {
+      if (/^[0-9]$/.test(e.key)) press(e.key);
+      else if (e.key === "Backspace") setPin((p) => p.slice(0, -1));
+      else if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const titles = {
+    pin: ["Enter manager PIN", "Unlock to change turns, technicians and tips"],
+    code: ["First-time setup", "Enter the one-time setup code"],
+    new: ["Choose a 6-digit PIN", "You'll use it to unlock each phone or iPad"],
+    confirm: ["Enter the PIN again", "To make sure there's no typo"],
+  };
+  const [title, subtitle] = titles[step];
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <form
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-6 pb-safe relative toast-in space-y-3"
-      >
-        <button type="button" onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
-          <X size={18} />
+    <div className="fixed inset-0 z-[100] bg-brand-charcoal text-white flex flex-col pin-in" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="flex items-center justify-between px-5 pt-safe-4">
+        <span className="flex items-center gap-2 text-brand-gold text-xs font-bold uppercase tracking-[0.2em]">
+          <Gem size={14} /> Manager
+        </span>
+        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" aria-label="Close">
+          <X size={20} />
         </button>
-        <div className="flex flex-col items-center text-center gap-1 pb-1">
-          <ShieldCheck size={30} className="text-brand-gold" />
-          <h3 className="font-bold text-lg text-brand-charcoal">{setup ? "Set your manager PIN" : "Enter manager PIN"}</h3>
-          <p className="text-xs text-brand-softSlate">
-            {setup ? "Use the one-time setup code, then choose a 6–10 digit PIN." : "Only devices with the PIN can change the board."}
-          </p>
-        </div>
+      </div>
 
-        {setup && (
-          <input
-            ref={firstRef}
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="Setup code"
-            autoCapitalize="characters"
-            autoComplete="off"
-            className={input + " tracking-[0.15em]"}
-          />
+      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-safe-6">
+        <ShieldCheck size={36} className="text-brand-gold mb-3" strokeWidth={1.6} />
+        <h2 className="font-serif text-2xl font-bold text-center">{title}</h2>
+        <p className="text-sm text-white/60 text-center mt-1 max-w-xs">{subtitle}</p>
+
+        {step === "code" ? (
+          <form
+            className="w-full max-w-xs mt-8 space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (code.replace(/[^A-Z0-9]/g, "").length < 8) return fail("Enter the full setup code (8 characters).");
+              setError("");
+              setStep("new");
+            }}
+          >
+            <input
+              value={code}
+              onChange={(e) => {
+                const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+                setCode(raw.length > 4 ? raw.slice(0, 4) + "-" + raw.slice(4) : raw);
+                setError("");
+              }}
+              placeholder="XXXX-XXXX"
+              autoFocus
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-4 text-2xl font-bold tracking-[0.25em] text-center placeholder:text-white/25 focus:outline-none focus:border-brand-gold"
+            />
+            <button type="submit" className="w-full py-4 rounded-2xl bg-brand-gold text-white font-bold text-base active:scale-[0.98]">
+              Continue
+            </button>
+            {error && <p className="text-sm text-rose-300 text-center">{error}</p>}
+          </form>
+        ) : (
+          <>
+            {/* dots */}
+            <div key={shake} className={`flex gap-4 mt-8 mb-3 ${shake ? "pin-shake" : ""}`} aria-label={`${pin.length} of ${PIN_LENGTH} digits`}>
+              {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`w-3.5 h-3.5 rounded-full border-2 transition ${i < pin.length ? "bg-brand-gold border-brand-gold scale-110" : "border-white/50"}`}
+                />
+              ))}
+            </div>
+            <div className="h-6 text-sm text-center">
+              {busy ? (
+                <Loader2 size={18} className="animate-spin text-brand-gold inline" />
+              ) : error ? (
+                <span className="text-rose-300">{error}</span>
+              ) : null}
+            </div>
+
+            {/* keypad */}
+            <div className="grid grid-cols-3 gap-x-6 gap-y-4 mt-4">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+                <Key key={d} onPress={() => press(d)}>{d}</Key>
+              ))}
+              <span />
+              <Key onPress={() => press("0")}>0</Key>
+              <button
+                onClick={() => setPin((p) => p.slice(0, -1))}
+                className="w-[76px] h-[76px] rounded-full flex items-center justify-center text-white/80 active:bg-white/10"
+                aria-label="Delete"
+              >
+                <Delete size={26} />
+              </button>
+            </div>
+
+            {step === "confirm" && (
+              <button onClick={() => { setStep("new"); setPin(""); setFirstPin(""); }} className="mt-6 text-sm text-white/60 underline">
+                Start over
+              </button>
+            )}
+          </>
         )}
-        <input
-          ref={setup ? undefined : firstRef}
-          value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 10))}
-          placeholder={setup ? "New PIN" : "PIN"}
-          type="password"
-          inputMode="numeric"
-          autoComplete={setup ? "new-password" : "current-password"}
-          className={input}
-        />
-        {setup && (
-          <input
-            value={pin2}
-            onChange={(e) => setPin2(e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="Repeat new PIN"
-            type="password"
-            inputMode="numeric"
-            autoComplete="new-password"
-            className={input}
-          />
-        )}
-
-        {error && <p className="text-sm text-rose-700 text-center">{error}</p>}
-
-        <button
-          type="submit"
-          disabled={busy || !pin || (setup && (!code || !pin2))}
-          className="w-full py-3 rounded-xl bg-brand-charcoal text-white font-bold flex items-center justify-center gap-2 disabled:opacity-40"
-        >
-          {busy && <Loader2 size={16} className="animate-spin" />} {setup ? "Save PIN" : "Unlock"}
-        </button>
-      </form>
+      </div>
     </div>
+  );
+}
+
+function Key({ children, onPress }) {
+  return (
+    <button
+      onClick={onPress}
+      className="w-[76px] h-[76px] rounded-full bg-white/10 text-3xl font-light flex items-center justify-center active:bg-brand-gold active:scale-95 transition"
+    >
+      {children}
+    </button>
   );
 }
