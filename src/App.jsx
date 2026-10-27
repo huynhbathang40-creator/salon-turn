@@ -358,13 +358,13 @@ export default function App() {
     <div className="min-h-screen bg-brand-cream text-brand-charcoal flex flex-col justify-between">
       {/* HEADER */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-brand-borderLight shadow-sm pt-safe">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="hidden sm:flex w-10 h-10 shrink-0 rounded-xl bg-brand-lightGold border border-brand-borderGold items-center justify-center text-brand-gold shadow-sm">
               <Gem size={20} />
             </div>
             <div>
-              <h1 className="font-serif font-bold text-lg leading-tight sm:text-2xl text-brand-charcoal tracking-tight">Nail Salon Call Manager</h1>
+              <h1 className="font-serif font-bold text-[17px] min-[400px]:text-lg leading-tight sm:text-2xl text-brand-charcoal tracking-tight">Nail Salon Call Manager</h1>
               <p className="text-[11px] uppercase tracking-widest hidden min-[400px]:block text-brand-gold font-semibold">Turn Tracking & Management</p>
             </div>
           </div>

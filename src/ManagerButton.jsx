@@ -30,48 +30,67 @@ export default function ManagerButton({ onMessage }) {
         <span className="hidden min-[420px]:inline">{isOwner ? "Owner" : isManager ? "Manager" : "View only"}</span>
       </button>
 
-      {menu && (
-        <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-brand-borderLight shadow-xl p-3 z-50 toast-in">
-          <p className="text-xs text-brand-softSlate px-1 pb-2">This device can change turns, technicians and tips.</p>
-          <label className="flex items-center justify-between gap-3 px-1 py-2.5 mb-2 border-y border-brand-borderLight cursor-pointer">
-            <span className="text-sm font-semibold text-brand-charcoal">
-              📞 Call buttons on this device
-              <span className="block text-[11px] font-normal text-brand-softSlate">Turn on for your own iPhone, iPad or Mac</span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showCalls}
-              onClick={() => setShowCalls(!showCalls)}
-              className={`relative w-12 h-7 shrink-0 rounded-full transition ${showCalls ? "bg-emerald-500" : "bg-slate-300"}`}
+      {/* Phone: sheet from the bottom. iPad / computer: centered card. On <body> so it is never squeezed or pushed off-screen. */}
+      {menu &&
+        createPortal(
+          <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-[2px] flex items-end sm:items-center justify-center sm:p-4" onClick={() => setMenu(false)}>
+            <div
+              className="w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl border border-brand-borderLight shadow-2xl p-5 pb-safe toast-in"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label="Manager menu"
             >
-              <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${showCalls ? "left-[22px]" : "left-0.5"}`} />
-            </button>
-          </label>
-          {/* owner mode: +1 / under-$30 tools, separate password */}
-          {isOwner ? (
-            <button
-              onClick={() => { setMenu(false); exitOwner(); onMessage?.("Owner mode off. +1 tools hidden on this device."); }}
-              className="w-full mb-2 py-2.5 rounded-xl bg-brand-lightGold border border-brand-borderGold text-brand-gold text-sm font-bold flex items-center justify-center gap-1.5"
-            >
-              <Crown size={14} /> Exit owner mode
-            </button>
-          ) : (
-            <button
-              onClick={() => { setMenu(false); setOpenPin("owner"); }}
-              className="w-full mb-2 py-2.5 rounded-xl border border-brand-borderGold text-brand-gold text-sm font-bold flex items-center justify-center gap-1.5"
-            >
-              <Crown size={14} /> Owner mode (+1 tools)
-            </button>
-          )}
-          <button
-            onClick={async () => { setMenu(false); exitOwner(); await logout(); onMessage?.("This device is now view only."); }}
-            className="w-full py-2.5 rounded-xl bg-brand-charcoal text-white text-sm font-bold flex items-center justify-center gap-1.5"
-          >
-            <Lock size={14} /> Lock this device
-          </button>
-        </div>
-      )}
+              <div className="sm:hidden mx-auto -mt-1 mb-3 w-10 h-1.5 rounded-full bg-slate-300" />
+              <div className="flex items-center justify-between mb-2">
+                <span className={`flex items-center gap-2 font-serif text-lg font-bold ${isOwner ? "text-brand-gold" : "text-brand-charcoal"}`}>
+                  {isOwner ? <Crown size={18} /> : <Unlock size={18} className="text-emerald-600" />} {isOwner ? "Owner mode" : "Manager mode"}
+                </span>
+                <button onClick={() => setMenu(false)} className="w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-sm text-brand-softSlate pb-3">This device can change turns, technicians and tips.</p>
+              <label className="flex items-center justify-between gap-3 py-3.5 mb-3 border-y border-brand-borderLight cursor-pointer">
+                <span className="text-sm font-semibold text-brand-charcoal">
+                  📞 Call buttons on this device
+                  <span className="block text-[11px] font-normal text-brand-softSlate">Turn on for your own iPhone, iPad or Mac</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showCalls}
+                  onClick={() => setShowCalls(!showCalls)}
+                  className={`relative w-12 h-7 shrink-0 rounded-full transition ${showCalls ? "bg-emerald-500" : "bg-slate-300"}`}
+                >
+                  <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${showCalls ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </label>
+              {/* owner mode: +1 / under-$30 tools, separate password */}
+              {isOwner ? (
+                <button
+                  onClick={() => { setMenu(false); exitOwner(); onMessage?.("Owner mode off. +1 tools hidden on this device."); }}
+                  className="w-full mb-2.5 py-3.5 rounded-2xl bg-brand-lightGold border border-brand-borderGold text-brand-gold text-sm font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Crown size={14} /> Exit owner mode
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setMenu(false); setOpenPin("owner"); }}
+                  className="w-full mb-2.5 py-3.5 rounded-2xl border border-brand-borderGold text-brand-gold text-sm font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Crown size={14} /> Owner mode (+1 tools)
+                </button>
+              )}
+              <button
+                onClick={async () => { setMenu(false); exitOwner(); await logout(); onMessage?.("This device is now view only."); }}
+                className="w-full py-3.5 rounded-2xl bg-brand-charcoal text-white text-sm font-bold flex items-center justify-center gap-1.5"
+              >
+                <Lock size={14} /> Lock this device
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Rendered on <body>: inside the blurred header a full-screen layer would be squeezed into the header */}
       {openPin &&
