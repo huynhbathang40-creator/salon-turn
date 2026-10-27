@@ -279,6 +279,38 @@ export default function App() {
     notify("Time updated.");
   }
 
+  // put the tech back where they were before a CALL (only possible for the most recent CALL)
+  const restoreQueue = (p, entry) =>
+    Array.isArray(entry.beforePosition) ? entry.beforePosition.filter((id) => p.technicians.some((t) => t.id === id)) : p.turnPosition;
+
+  function deleteEntry(entryId, restore) {
+    const entry = data.history.find((h) => h.id === entryId);
+    if (!entry) return;
+    setData((p) => {
+      const e = p.history.find((h) => h.id === entryId);
+      if (!e) return p;
+      return { ...p, history: p.history.filter((h) => h.id !== entryId), turnPosition: restore ? restoreQueue(p, e) : p.turnPosition };
+    });
+    notify(`${entry.kind === "small" ? "+1" : "Call"} for ${entry.techName} deleted${restore ? ", back to their place" : ""}.`);
+  }
+
+  // owner: a CALL that was really an under-$30 customer
+  function makeSmall(entryId, restore) {
+    const entry = data.history.find((h) => h.id === entryId);
+    if (!entry) return;
+    setData((p) => {
+      const e = p.history.find((h) => h.id === entryId);
+      if (!e) return p;
+      const { beforePosition, ...rest } = e;
+      return {
+        ...p,
+        history: p.history.map((h) => (h.id === entryId ? { ...rest, kind: "small" } : h)),
+        turnPosition: restore ? restoreQueue(p, e) : p.turnPosition,
+      };
+    });
+    notify(`${entry.techName}: changed to under $30${restore ? ", back to their place" : ""}.`);
+  }
+
   function undoLastCall() {
     // owner mode undoes the very last entry; everyone else only undoes the last CALL (never the owner's +1)
     const idx = isOwner ? data.history.length - 1 : data.history.map((h) => h.kind !== "small").lastIndexOf(true);
@@ -771,7 +803,7 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} onEditTime={editTime} canEdit={canEdit} showSmall={isOwner} />
+          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} onEditTime={editTime} onDeleteEntry={deleteEntry} onMakeSmall={makeSmall} canEdit={canEdit} showSmall={isOwner} />
 
           <div className="space-y-6 sm:space-y-8">
             {/* 5. NEW DAY */}

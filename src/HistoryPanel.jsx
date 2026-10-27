@@ -47,7 +47,7 @@ const KindTag = ({ e }) =>
     <span className="text-[10px] font-bold px-1.5 py-px rounded bg-brand-lightGold text-brand-gold whitespace-nowrap">TURN</span>
   );
 
-export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime, canEdit = true, showSmall = false }) {
+export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime, onDeleteEntry, onMakeSmall, canEdit = true, showSmall = false }) {
   const [view, setView] = useState("tech"); // "tech" | "time" | "summary"
   const [dayId, setDayId] = useState("today");
   const [techKey, setTechKey] = useState("all");
@@ -75,9 +75,13 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
     setTechKey("all");
   }
 
+  // the most recent CALL can also put the tech back where they were before it
+  const lastCall = [...data.history].reverse().find((h) => !isSmall(h));
+  const canRestore = (e) => Boolean(lastCall && e.id === lastCall.id && Array.isArray(lastCall.beforePosition));
+
   const editBtn = (e) =>
     canEditTime ? (
-      <button onClick={() => setEditing(e)} className="shrink-0 w-8 h-8 rounded-lg bg-white border border-brand-borderLight text-brand-softSlate flex items-center justify-center" aria-label="Change time">
+      <button onClick={() => setEditing(e)} className="shrink-0 w-8 h-8 rounded-lg bg-white border border-brand-borderLight text-brand-softSlate flex items-center justify-center" aria-label="Edit this entry">
         <Pencil size={13} />
       </button>
     ) : null;
@@ -229,13 +233,14 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
       )}
 
       {editing && (
-        <TimeEditor
+        <EntryEditor
           entry={editing}
+          canRestore={canRestore(editing)}
+          ownerMode={showSmall}
           onClose={() => setEditing(null)}
-          onSave={(iso) => {
-            onEditTime(editing.id, iso);
-            setEditing(null);
-          }}
+          onSaveTime={(iso) => { onEditTime(editing.id, iso); setEditing(null); }}
+          onDelete={(restore) => { onDeleteEntry?.(editing.id, restore); setEditing(null); }}
+          onMakeSmall={(restore) => { onMakeSmall?.(editing.id, restore); setEditing(null); }}
         />
       )}
     </section>
@@ -321,13 +326,16 @@ function Summary({ groups, total, small, dateLabel, showSmall }) {
   );
 }
 
-/* ---------- change the time of one customer (when CALL was tapped late) ---------- */
+/* ---------- edit one entry: change time, delete it, or (owner) turn a CALL into an under-$30 customer ---------- */
 
-function TimeEditor({ entry, onClose, onSave }) {
+function EntryEditor({ entry, canRestore, ownerMode, onClose, onSaveTime, onDelete, onMakeSmall }) {
   const d = new Date(entry.timestamp);
   const pad = (n) => String(n).padStart(2, "0");
   const [value, setValue] = useState(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [restore, setRestore] = useState(true); // put the tech back where they were before this CALL
+  const call = !isSmall(entry);
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
@@ -342,34 +350,86 @@ function TimeEditor({ entry, onClose, onSave }) {
     const next = new Date(entry.timestamp);
     next.setHours(Number(m[1]), Number(m[2]), 0, 0);
     if (next.getTime() > Date.now() + 60000) return setError("That time is in the future.");
-    onSave(next.toISOString());
+    onSaveTime(next.toISOString());
   }
+
+  const restoreBox = call && canRestore && (
+    <label className="flex items-start gap-2.5 text-sm text-brand-charcoal cursor-pointer">
+      <input type="checkbox" checked={restore} onChange={(e) => setRestore(e.target.checked)} className="mt-0.5 w-5 h-5 accent-emerald-600 shrink-0" />
+      <span>
+        Move <b>{entry.techName}</b> back to their place before this call
+        <span className="block text-xs text-brand-softSlate">This was the last CALL, so their old position is known.</span>
+      </span>
+    </label>
+  );
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <form onSubmit={save} onClick={(e) => e.stopPropagation()} className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 pb-safe relative toast-in space-y-4">
+      <form onSubmit={save} onClick={(e) => e.stopPropagation()} className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 pb-safe relative toast-in space-y-4 max-h-[94vh] overflow-y-auto">
         <button type="button" onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
           <X size={18} />
         </button>
         <div>
-          <h3 className="font-serif text-xl font-bold text-brand-charcoal pr-10">Change time</h3>
+          <h3 className="font-serif text-xl font-bold text-brand-charcoal pr-10">Edit entry</h3>
           <p className="text-sm text-brand-softSlate mt-1 flex items-center gap-2">
-            <b className="text-brand-charcoal">{entry.techName}</b> <KindTag e={entry} /> #{entry.no}
+            <b className="text-brand-charcoal">{entry.techName}</b> {ownerMode && <KindTag e={entry} />} #{entry.no}
           </p>
           <p className="text-xs text-brand-softSlate mt-1">
             Saved as {formatTime(entry.timestamp)}
             {entry.edited && <> · first recorded {formatTime(entry.originalTimestamp)}</>}
           </p>
         </div>
-        <input
-          type="time"
-          value={value}
-          onChange={(e) => { setValue(e.target.value); setError(""); }}
-          className="w-full bg-brand-warmIvory border border-brand-borderLight rounded-2xl px-4 py-4 text-3xl font-bold text-center text-brand-charcoal focus:outline-none focus:border-brand-gold"
-          required
-        />
-        {error && <p className="text-sm text-rose-700">{error}</p>}
-        <button type="submit" className="w-full py-3.5 rounded-2xl bg-brand-gold text-white font-bold">Save time</button>
+
+        {/* 1. change time */}
+        <div className="space-y-2">
+          <div className="text-xs font-bold uppercase tracking-wider text-brand-softSlate">Change time</div>
+          <div className="flex gap-2">
+            <input
+              type="time"
+              value={value}
+              onChange={(e) => { setValue(e.target.value); setError(""); }}
+              className="flex-1 min-w-0 bg-brand-warmIvory border border-brand-borderLight rounded-2xl px-3 py-3 text-2xl font-bold text-center text-brand-charcoal focus:outline-none focus:border-brand-gold"
+              required
+            />
+            <button type="submit" className="shrink-0 px-5 rounded-2xl bg-brand-gold text-white font-bold">Save</button>
+          </div>
+          {error && <p className="text-sm text-rose-700">{error}</p>}
+        </div>
+
+        {/* 2. owner: a CALL that was really an under-$30 customer */}
+        {ownerMode && call && !confirmDelete && (
+          <div className="space-y-2.5 pt-3 border-t border-brand-borderLight">
+            <div className="text-xs font-bold uppercase tracking-wider text-brand-softSlate">Was it under $30?</div>
+            {restoreBox}
+            <button type="button" onClick={() => onMakeSmall(canRestore && restore)} className="w-full py-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-800 font-bold text-sm">
+              Change to under $30 (+1)
+            </button>
+          </div>
+        )}
+
+        {/* 3. delete (2 steps) */}
+        <div className="pt-3 border-t border-brand-borderLight space-y-2.5">
+          {!confirmDelete ? (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="w-full py-3 rounded-2xl border border-rose-200 text-rose-700 font-bold text-sm">
+              {call ? "Delete this CALL" : "Delete this +1"}
+            </button>
+          ) : (
+            <div className="p-3.5 rounded-2xl bg-rose-50 border-2 border-rose-300 space-y-3">
+              <p className="text-sm text-rose-900">
+                Delete <b>{entry.techName}</b>'s {call ? "call" : "+1"} at {formatTime(entry.timestamp)} from today's history?
+              </p>
+              {restoreBox}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => onDelete(canRestore && restore)} className="flex-1 py-2.5 bg-rose-600 text-white font-bold text-sm rounded-xl">
+                  Yes, delete
+                </button>
+                <button type="button" onClick={() => setConfirmDelete(false)} className="px-4 py-2.5 bg-white border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
