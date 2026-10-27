@@ -488,7 +488,7 @@ export default function App() {
               ) : (
                 <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
                   {sortedTechs.map((tech) => (
-                    <div key={tech.id} className="p-3.5 bg-brand-warmIvory/60 border border-brand-borderLight rounded-2xl flex flex-wrap items-center justify-between gap-3">
+                    <div key={tech.id} className="p-3 sm:p-3.5 bg-brand-warmIvory/60 border border-brand-borderLight rounded-2xl flex flex-col min-[380px]:flex-row min-[380px]:items-center justify-between gap-2.5">
                       {editingId === tech.id ? (
                         <div className="flex items-center gap-2 w-full">
                           <input
@@ -505,45 +505,40 @@ export default function App() {
                           <button
                             onClick={() => canEdit && setAvatarFor(tech.name)}
                             disabled={!canEdit}
-                            className="flex items-center gap-2.5 min-w-0 text-left"
+                            className="flex flex-1 items-center gap-2.5 min-w-0 text-left"
                             aria-label={canEdit ? `Change ${tech.name}'s picture` : tech.name}
                           >
-                            <span className="relative">
+                            <span className="relative shrink-0">
                               <Avatar name={tech.name} size={40} />
                               <span className={`absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-brand-charcoal text-white items-center justify-center border-2 border-white ${canEdit ? "flex" : "hidden"}`}>
                                 <Camera size={9} />
                               </span>
                             </span>
                             <span className="min-w-0">
-                              <span className="flex items-center gap-1.5 font-bold text-brand-charcoal text-sm"><span className="truncate">{tech.name}</span>{plusBadge(tech)}</span>
+                              <span className="block font-bold text-brand-charcoal text-sm truncate">{tech.name}</span>
                               {tipRows && (() => {
                                 const tip = tipByKey.get(tipKey(tech.name));
-                                if (!tip) return canEdit ? <span className="text-[10px] font-bold text-amber-700">No Zelle / Venmo</span> : null;
+                                if (!tip) return canEdit ? <span className="flex items-center gap-1 mt-0.5"><span className="text-[10px] font-bold text-amber-700 whitespace-nowrap">No Zelle / Venmo</span>{plusBadge(tech)}</span> : null;
                                 return (
-                                  <span className="flex gap-1 mt-0.5">
+                                  <span className="flex items-center gap-1 mt-0.5">
                                     {tip.zelle && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-[#f3e8ff] text-[#7414ca]">ZELLE</span>}
                                     {tip.venmo && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-[#e6f4ff] text-[#008CFF]">VENMO</span>}
                                     {!tip.zelle && !tip.venmo && <span className="text-[9px] font-bold px-1.5 py-px rounded bg-slate-100 text-slate-600">QR</span>}
+                                    {plusBadge(tech)}
                                   </span>
                                 );
                               })()}
                             </span>
                           </button>
-                          {canEdit && <div className="flex items-center gap-2">
+                          {canEdit && <div className="flex shrink-0 items-center gap-1.5 self-end min-[380px]:self-auto">
                             {callPair(tech)}
+                            {/* edit: name, Zelle/Venmo, phone, picture, and "Remove technician" (2-step) */}
                             <button
                               onClick={() => setTechEditor({ tech })}
-                              className="px-2.5 py-2 bg-white border border-brand-borderLight text-brand-softSlate rounded-xl"
+                              className="w-10 h-10 bg-white border border-brand-borderLight text-brand-softSlate rounded-xl flex items-center justify-center"
                               aria-label={`Edit ${tech.name}`}
                             >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              onClick={() => setTechEditor({ tech })}
-                              className="px-2.5 py-2 bg-white border border-brand-borderLight text-rose-600 rounded-xl"
-                              aria-label="Delete"
-                            >
-                              <Trash2 size={13} />
+                              <Pencil size={14} />
                             </button>
                           </div>}
                         </>
@@ -605,8 +600,8 @@ export default function App() {
                     {(id, index) => {
                       const tech = getTechnician(id);
                       return (
-                        <div className="p-3 bg-white border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-                          <div className="flex items-center gap-2.5 min-w-[150px] flex-1">
+                        <div className="p-3 bg-white border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                             <span className="w-7 h-7 shrink-0 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">
                               S{index + 1}
@@ -616,7 +611,7 @@ export default function App() {
                             {plusBadge(tech)}
                             {callLink(tech)}
                           </div>
-                          {canEdit && <div className="flex items-center gap-1 ml-auto">
+                          {canEdit && <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
                             {callPair(tech, true)}
                             <button onClick={() => removeFromStandby(tech.id)} className="p-2 text-rose-600 rounded-lg" aria-label="Remove from standby">
                               <X size={16} />
@@ -702,7 +697,7 @@ export default function App() {
                       );
                     return (
                       <div
-                        className={`w-full p-3 sm:p-4 rounded-2xl border flex flex-wrap items-center justify-between gap-x-2 gap-y-2.5 ${
+                        className={`w-full p-3 sm:p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 ${
                           isStarred
                             ? "bg-amber-50 border-brand-gold ring-1 ring-brand-gold/30"
                             : index === 0
@@ -710,7 +705,7 @@ export default function App() {
                             : "bg-brand-warmIvory border-brand-borderLight"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-[118px] flex-1">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <GripVertical size={16} className="text-slate-300 shrink-0 hidden sm:block" />
                           <div
                             className={`hidden sm:flex w-9 h-9 shrink-0 rounded-xl items-center justify-center font-serif font-bold text-sm ${
@@ -743,7 +738,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {canEdit && <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                        {canEdit && <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
                           <button
                             onClick={() => toggleStar(tech.id)}
                             className={`w-9 h-9 rounded-xl text-base font-bold flex items-center justify-center ${
