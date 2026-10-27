@@ -13,6 +13,7 @@ import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
 import ThemeButton from "./ThemeButton.jsx";
 import { useManager } from "./auth.js";
+import { useOwner } from "./owner.js";
 import TechEditor from "./TechEditor.jsx";
 import { useTipRows, saveTechTip, deleteTechTip, tipKey } from "./tips.js";
 import { sortByName } from "./staff.js";
@@ -37,6 +38,7 @@ const callBtn = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-x
 
 export default function App() {
   const { isManager: canEdit } = useManager(); // false = view only (no PIN on this device)
+  const { isOwner } = useOwner(); // owner mode: +1 / under-$30 tools visible (separate owner PIN)
   const [store, setStore] = useState(null);
   const [data, setBoard] = useState(null);
   const [archive, setArchive] = useState([]);
@@ -278,21 +280,23 @@ export default function App() {
   }
 
   function undoLastCall() {
-    if (data.history.length === 0) return notify("There is no call to undo.");
-    const lastName = data.history[data.history.length - 1].techName;
+    // owner mode undoes the very last entry; everyone else only undoes the last CALL (never the owner's +1)
+    const idx = isOwner ? data.history.length - 1 : data.history.map((h) => h.kind !== "small").lastIndexOf(true);
+    if (idx < 0) return notify("There is no call to undo.");
+    const target = data.history[idx];
     setData((p) => {
-      const last = p.history[p.history.length - 1];
-      if (!last) return p;
+      const i = p.history.findIndex((h) => h.id === target.id);
+      if (i < 0) return p;
+      const last = p.history[i];
       return {
         ...p,
-        history: p.history.slice(0, -1),
+        history: p.history.filter((_, j) => j !== i),
         turnPosition: last.kind !== "small" && Array.isArray(last.beforePosition)
           ? last.beforePosition.filter((id) => p.technicians.some((t) => t.id === id))
           : p.turnPosition,
       };
     });
-    const wasSmall = data.history[data.history.length - 1].kind === "small";
-    notify(wasSmall ? `Last +1 for ${lastName} undone.` : `Last call for ${lastName} undone.`);
+    notify(target.kind === "small" ? `Last +1 for ${target.techName} undone.` : `Last call for ${target.techName} undone.`);
   }
 
   function startNewDay() {
@@ -316,12 +320,19 @@ export default function App() {
   const smallCount = {}; // today's under-$30 customers per tech (shown as +N)
   for (const h of data.history) if (h.kind === "small") smallCount[h.techId] = (smallCount[h.techId] || 0) + 1;
   const plusBadge = (tech) =>
-    smallCount[tech.id] ? (
+    isOwner && smallCount[tech.id] ? (
       <span className="shrink-0 text-[11px] font-bold px-1.5 py-px rounded-md bg-sky-100 text-sky-800" title="Under-$30 customers today">
         +{smallCount[tech.id]}
       </span>
     ) : null;
-  const callPair = (tech, fromStandby = false) => (
+  const callPair = (tech, fromStandby = false) => !isOwner ? (
+    <button
+      onClick={() => callTechnician(tech.id, fromStandby)}
+      className="shrink-0 bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-2.5 rounded-xl shadow-sm"
+    >
+      CALL
+    </button>
+  ) : (
     <div className="flex shrink-0 rounded-xl overflow-hidden shadow-sm">
       <button
         onClick={() => callTechnician(tech.id, fromStandby)}
@@ -423,8 +434,8 @@ export default function App() {
                 <span className="font-serif text-2xl font-bold text-brand-gold">{data.turnPosition.length}</span>
               </div>
               <div className="px-4 py-2.5 rounded-2xl bg-brand-warmIvory border border-brand-borderLight text-center min-w-[120px]">
-                <span className="block text-[10px] uppercase tracking-wider text-brand-softSlate font-medium">Customers Today</span>
-                <span className="font-serif text-2xl font-bold text-brand-charcoal">{data.history.length}</span>
+                <span className="block text-[10px] uppercase tracking-wider text-brand-softSlate font-medium">{isOwner ? "Customers Today" : "Calls Today"}</span>
+                <span className="font-serif text-2xl font-bold text-brand-charcoal">{isOwner ? data.history.length : data.history.filter((h) => h.kind !== "small").length}</span>
               </div>
             </div>
           </div>
@@ -765,7 +776,7 @@ export default function App() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} onEditTime={editTime} canEdit={canEdit} />
+          <HistoryPanel data={data} archive={archive} onUndoLastCall={undoLastCall} onEditTime={editTime} canEdit={canEdit} showSmall={isOwner} />
 
           <div className="space-y-6 sm:space-y-8">
             {/* 5. NEW DAY */}
@@ -814,10 +825,10 @@ export default function App() {
                     <details key={day.id} className="group border border-brand-borderLight rounded-xl bg-brand-warmIvory/60 overflow-hidden text-xs">
                       <summary className="p-3 font-semibold text-brand-charcoal cursor-pointer flex justify-between items-center group-open:bg-brand-lightGold/50">
                         <span>{day.date}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-brand-gold border border-brand-borderGold">{day.history.length} Calls</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white text-brand-gold border border-brand-borderGold">{day.history.filter((h) => isOwner || h.kind !== "small").length} Calls</span>
                       </summary>
                       <div className="p-3 bg-white border-t border-brand-borderLight space-y-1">
-                        {day.history.map((h, i) => (
+                        {day.history.filter((h) => isOwner || h.kind !== "small").map((h, i) => (
                           <div key={i} className="flex justify-between text-[11px] text-brand-softSlate py-0.5">
                             <span>#{h.turnNo} {h.techName}</span>
                             <span className="font-mono">{formatTime(h.timestamp)}</span>

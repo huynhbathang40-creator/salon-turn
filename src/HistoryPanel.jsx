@@ -36,7 +36,7 @@ function groupByTech(history, technicians) {
 }
 
 const tabBtn = (active) =>
-  `flex-1 sm:flex-none px-2.5 sm:px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap ${
+  `flex-1 sm:flex-none px-1.5 min-[400px]:px-2.5 sm:px-3 py-2 rounded-lg text-[11px] min-[400px]:text-xs font-bold flex items-center justify-center gap-1.5 transition whitespace-nowrap ${
     active ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"
   }`;
 
@@ -47,14 +47,21 @@ const KindTag = ({ e }) =>
     <span className="text-[10px] font-bold px-1.5 py-px rounded bg-brand-lightGold text-brand-gold whitespace-nowrap">TURN</span>
   );
 
-export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime, canEdit = true }) {
+export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime, canEdit = true, showSmall = false }) {
   const [view, setView] = useState("tech"); // "tech" | "time" | "summary"
   const [dayId, setDayId] = useState("today");
   const [techKey, setTechKey] = useState("all");
   const [editing, setEditing] = useState(null); // history entry whose time is being changed
 
   const day = dayId === "today" ? null : archive.find((a) => a.id === dayId);
-  const history = day ? day.history || [] : data.history;
+  // number customers in time order; without owner mode the under-$30 entries are left out entirely
+  const history = useMemo(() => {
+    const all = day ? day.history || [] : data.history;
+    return [...all]
+      .filter((e) => showSmall || !isSmall(e))
+      .sort(byTime)
+      .map((e, i) => ({ ...e, no: i + 1 }));
+  }, [day, data.history, showSmall]);
   const dateLabel = day ? day.date : data.businessDate;
   const isToday = !day;
   const canEditTime = isToday && canEdit && Boolean(onEditTime);
@@ -112,13 +119,13 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
         </select>
         <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 sm:ml-auto">
           <button onClick={() => setView("tech")} className={tabBtn(view === "tech")}>
-            <Users size={13} /> By tech
+            <Users size={13} className="hidden min-[400px]:block" /> By tech
           </button>
           <button onClick={() => setView("time")} className={tabBtn(view === "time")}>
-            <ListOrdered size={13} /> By time
+            <ListOrdered size={13} className="hidden min-[400px]:block" /> By time
           </button>
           <button onClick={() => setView("summary")} className={tabBtn(view === "summary")}>
-            <BarChart3 size={13} /> Summary
+            <BarChart3 size={13} className="hidden min-[400px]:block" /> Summary
           </button>
         </div>
       </div>
@@ -128,7 +135,7 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
           No customers recorded for {isToday ? "today" : dateLabel}.
         </div>
       ) : view === "summary" ? (
-        <Summary groups={groups} total={history.length} small={smallTotal} dateLabel={dateLabel} />
+        <Summary groups={groups} total={history.length} small={smallTotal} dateLabel={dateLabel} showSmall={showSmall} />
       ) : view === "tech" ? (
         <div className="mt-4">
           {/* tech filter */}
@@ -179,8 +186,8 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
                         <li key={e.id || i} className="flex items-center justify-between gap-2 px-4 py-2.5 text-sm">
                           <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                             <span className="w-8 shrink-0 text-xs font-bold text-brand-softSlate">{ordinal(i + 1)}</span>
-                            <KindTag e={e} />
-                            <span className="hidden min-[400px]:inline text-xs text-brand-softSlate whitespace-nowrap">#{e.turnNo}</span>
+                            {showSmall && <KindTag e={e} />}
+                            <span className="hidden min-[400px]:inline text-xs text-brand-softSlate whitespace-nowrap">#{e.no}</span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
@@ -206,10 +213,10 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
         <ul className="mt-4 divide-y divide-brand-borderLight border border-brand-borderLight rounded-2xl overflow-hidden">
           {[...history].sort(byTime).reverse().map((e, i) => (
             <li key={e.id || i} className="flex items-center gap-3 px-3 sm:px-4 py-2.5 bg-white">
-              <span className="w-9 shrink-0 font-serif font-bold text-brand-gold text-sm">#{e.turnNo}</span>
+              <span className="w-9 shrink-0 font-serif font-bold text-brand-gold text-sm">#{e.no}</span>
               <span className="flex-1 min-w-0 flex items-center gap-2">
                 <span className="font-bold text-brand-charcoal text-sm truncate">{e.techName}</span>
-                <KindTag e={e} />
+                {showSmall && <KindTag e={e} />}
               </span>
               <span className="text-right">
                 <span className="block font-mono text-sm text-brand-softSlate whitespace-nowrap">{formatTime(e.timestamp)}</span>
@@ -237,7 +244,7 @@ export default function HistoryPanel({ data, archive, onUndoLastCall, onEditTime
 
 /* ---------- daily summary: turns + under-$30 = customers, per tech and for the salon ---------- */
 
-function Summary({ groups, total, small, dateLabel }) {
+function Summary({ groups, total, small, dateLabel, showSmall }) {
   const [copied, setCopied] = useState(false);
   const max = Math.max(1, ...groups.map((g) => g.entries.length));
   const turns = total - small;
@@ -249,7 +256,7 @@ function Summary({ groups, total, small, dateLabel }) {
   });
 
   function copy() {
-    const lines = [
+    const lines = !showSmall ? [`Turns ${dateLabel}: ${total}`, ...stats.map((s) => `${s.name}: ${s.turns}`)] : [
       `Customers ${dateLabel}: ${total} (${turns} turns + ${small} under $30)`,
       ...stats.map((s) => `${s.name}: ${s.turns}${s.small ? ` + ${s.small}` : ""} = ${s.entries.length}`),
     ];
@@ -262,23 +269,25 @@ function Summary({ groups, total, small, dateLabel }) {
   const box = "rounded-2xl border p-3 text-center";
   return (
     <div className="mt-4 space-y-4">
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className={`grid gap-2 sm:gap-3 ${showSmall ? "grid-cols-3" : "grid-cols-1"}`}>
         <div className={box + " bg-brand-charcoal border-brand-charcoal text-white"}>
-          <div className="text-[10px] sm:text-[11px] uppercase tracking-wider opacity-70">Customers</div>
+          <div className="text-[9px] min-[400px]:text-[10px] sm:text-[11px] uppercase tracking-normal min-[400px]:tracking-wider opacity-70">{showSmall ? "Customers" : "Turns today"}</div>
           <div className="font-serif text-3xl font-bold">{total}</div>
         </div>
+        {showSmall && <>
         <div className={box + " bg-brand-lightGold border-brand-borderGold"}>
-          <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-brand-softSlate">Turns ($30+)</div>
+          <div className="text-[9px] min-[400px]:text-[10px] sm:text-[11px] uppercase tracking-normal min-[400px]:tracking-wider text-brand-softSlate">Turns ($30+)</div>
           <div className="font-serif text-3xl font-bold text-brand-gold">{turns}</div>
         </div>
         <div className={box + " bg-sky-50 border-sky-200"}>
-          <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-sky-800/70">Under $30</div>
+          <div className="text-[9px] min-[400px]:text-[10px] sm:text-[11px] uppercase tracking-normal min-[400px]:tracking-wider text-sky-800/70">Under $30</div>
           <div className="font-serif text-3xl font-bold text-sky-800">{small}</div>
         </div>
+        </>}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 text-[11px] text-brand-softSlate">
+        <div className={`flex items-center gap-3 text-[11px] text-brand-softSlate ${showSmall ? "" : "invisible"}`}>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-brand-gold" /> Turn</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-sky-400" /> Under $30</span>
         </div>
@@ -345,7 +354,7 @@ function TimeEditor({ entry, onClose, onSave }) {
         <div>
           <h3 className="font-serif text-xl font-bold text-brand-charcoal pr-10">Change time</h3>
           <p className="text-sm text-brand-softSlate mt-1 flex items-center gap-2">
-            <b className="text-brand-charcoal">{entry.techName}</b> <KindTag e={entry} /> #{entry.turnNo}
+            <b className="text-brand-charcoal">{entry.techName}</b> <KindTag e={entry} /> #{entry.no}
           </p>
           <p className="text-xs text-brand-softSlate mt-1">
             Saved as {formatTime(entry.timestamp)}
