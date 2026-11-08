@@ -574,19 +574,6 @@ export default function App() {
                 </span>
               </div>
 
-              {starredInTurn.length > 0 && (
-                <div className="priority-banner mt-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-500/10 border-2 border-brand-gold text-center">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Star size={14} className="text-brand-gold fill-brand-gold animate-bounce" />
-                    <span className="font-serif font-bold text-brand-gold text-xs uppercase tracking-widest">Priority Technicians</span>
-                    <Star size={14} className="text-brand-gold fill-brand-gold animate-bounce" />
-                  </div>
-                  <div className="font-serif text-2xl font-bold text-brand-charcoal tracking-wide">
-                    {starredInTurn.map((t) => t.name).join(", ")}
-                  </div>
-                </div>
-              )}
-
               {/* READY / STANDBY */}
               <div className="mt-5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/50 p-3">
                 <div className="flex items-center justify-between px-1 pb-2">
@@ -657,6 +644,19 @@ export default function App() {
                   </div>
                 )}
               </div>
+
+              {starredInTurn.length > 0 && (
+                <div className="priority-banner mt-5 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-500/10 border-2 border-brand-gold text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Star size={14} className="text-brand-gold fill-brand-gold animate-bounce" />
+                    <span className="font-serif font-bold text-brand-gold text-xs uppercase tracking-widest">Priority Technicians</span>
+                    <Star size={14} className="text-brand-gold fill-brand-gold animate-bounce" />
+                  </div>
+                  <div className="font-serif text-2xl font-bold text-brand-charcoal tracking-wide">
+                    {starredInTurn.map((t) => t.name).join(", ")}
+                  </div>
+                </div>
+              )}
 
               {/* TURN ORDER */}
               <div className="flex items-center justify-between px-1 pt-5 pb-2">
