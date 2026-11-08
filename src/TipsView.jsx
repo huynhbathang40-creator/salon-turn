@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle, Sparkles } from "lucide-react";
+import { Search, X, Copy, Check, CheckCircle2, QrCode, Loader2, Heart, Pencil, AlertCircle, Sparkles } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
 import ScanSteps from "./ScanSteps.jsx";
+import { TipCheckPanel } from "./TipLog.jsx";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
 // each person's Zelle / Venmo comes from the tip info saved for that name.
 // simple = customer mode: just the photo and a big name on each card
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false }) {
+// onTipSent(tech, method): saves an "I've sent it" check (only on devices that can save)
+// tipChecks + onTipStatus: today's checks for the manager panel
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus }) {
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -38,6 +41,8 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           </span>
         </div>
       )}
+
+      {canEdit && tipChecks && onTipStatus && <TipCheckPanel tips={tipChecks} onStatus={onTipStatus} />}
 
       {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows.filter((r) => (r.name_key || tipKey(r.name)) !== SALON_PAY_KEY)} />}
 
@@ -97,6 +102,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           tip={selected.tip}
           canEdit={canEdit}
           simple={simple}
+          onSent={onTipSent ? (method) => onTipSent(selected.tech, method) : null}
           onEdit={() => { setSelected(null); onEditTech?.(selected.tech.name); }}
           onClose={() => setSelected(null)}
         />
@@ -105,11 +111,24 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
   );
 }
 
-function TipModal({ name, tip, onClose, canEdit, onEdit, simple }) {
+function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
   const key = tip.name_key || tipKey(tip.name);
   const [qr, setQr] = useState(null);
   const [method, setMethod] = useState(tip.zelle ? "zelle" : tip.venmo ? "venmo" : "zelle");
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState("idle"); // idle | saving | done | error
+
+  async function confirmSent() {
+    setSent("saving");
+    try {
+      await onSent(method);
+      setSent("done");
+      navigator.vibrate?.(20);
+      setTimeout(onClose, 2500);
+    } catch {
+      setSent("error");
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -208,6 +227,29 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple }) {
         )}
 
         {image && <ScanSteps method={method} />}
+
+        {onSent && (hasZelle || hasVenmo) && (
+          sent === "done" ? (
+            <div className="mt-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+              <CheckCircle2 size={30} className="text-emerald-600 mx-auto" />
+              <div className="font-bold text-emerald-900 mt-1">Thank you!</div>
+              <div className="text-sm text-emerald-800">{name} will be notified.</div>
+            </div>
+          ) : (
+            <div className="mt-5">
+              <button
+                onClick={confirmSent}
+                disabled={sent === "saving"}
+                className="w-full py-3.5 rounded-2xl bg-brand-charcoal text-white font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
+              >
+                {sent === "saving" ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />} I've sent it
+              </button>
+              <p className={`text-[11px] text-center mt-1.5 ${sent === "error" ? "text-rose-700" : "text-brand-softSlate"}`}>
+                {sent === "error" ? "Couldn't save. Check the internet and try again." : `Tap after you send your tip to ${name}`}
+              </p>
+            </div>
+          )
+        )}
 
         <p className="text-[11px] text-brand-softSlate text-center mt-4">
           {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}

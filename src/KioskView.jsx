@@ -12,7 +12,7 @@ const PIN_LENGTH = 6;
 
 /* ---------- the customer screen: Tips + Pay only ---------- */
 
-export default function KioskView({ technicians, salonPay }) {
+export default function KioskView({ technicians, salonPay, onTipSent }) {
   const [tab, setTab] = useState(() => (window.location.hash === "#pay" ? "pay" : "tips"));
   const [exiting, setExiting] = useState(false);
 
@@ -53,7 +53,7 @@ export default function KioskView({ technicians, salonPay }) {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
-        {tab === "pay" ? <PayView pay={salonPay} isOwner={false} simple /> : <TipsView technicians={technicians} canEdit={false} simple />}
+        {tab === "pay" ? <PayView pay={salonPay} isOwner={false} simple /> : <TipsView technicians={technicians} canEdit={false} simple onTipSent={onTipSent} />}
       </main>
 
       {exiting && createPortal(<KioskPin mode="exit" onClose={() => setExiting(false)} onDone={() => setExiting(false)} />, document.body)}

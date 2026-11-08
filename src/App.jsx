@@ -11,6 +11,7 @@ import TipsView from "./TipsView.jsx";
 import PayView from "./PayView.jsx";
 import KioskView from "./KioskView.jsx";
 import { useKiosk } from "./kiosk.js";
+import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -105,6 +106,13 @@ export default function App() {
   }, []);
 
   const setData = (updater) => (canEdit ? store.update(updater) : undefined);
+
+  // "I've sent it" tip checks (shared board, so every device sees them)
+  const logTipSent = (tech, method) => {
+    const entry = newTipEntry(tech, method, newId());
+    return store.update((p) => addTipEntry(p, entry));
+  };
+  const setTipStatus = (id, status) => setData((p) => setTipEntryStatus(p, id, status));
 
   // salon Zelle (Pay tab): kept on the shared board so every device sees it; only owner mode can change it
   async function saveSalonPay(pay) {
@@ -335,9 +343,10 @@ export default function App() {
       </div>
     );
 
-  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} />;
+  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} />;
 
   const isCloud = store.mode === "cloud";
+  const pendingTips = todaysTips(data).filter((t) => t.status === "pending").length;
   const sortedTechs = sortByName(data.technicians); // A–Z, owners last
   const smallCount = {}; // today's under-$30 customers per tech (shown as +N)
   for (const h of data.history) if (h.kind === "small") smallCount[h.techId] = (smallCount[h.techId] || 0) + 1;
@@ -410,9 +419,14 @@ export default function App() {
               <button
                 key={key}
                 onClick={() => goTab(key)}
-                className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
+                className={`flex-1 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-1.5 ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
               >
                 {label}
+                {key === "tips" && canEdit && pendingTips > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${pendingTips} tips to check`}>
+                    {pendingTips}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -428,6 +442,9 @@ export default function App() {
           <TipsView
             technicians={sortByName(data.technicians)}
             canEdit={canEdit}
+            onTipSent={canEdit ? logTipSent : null}
+            tipChecks={todaysTips(data)}
+            onTipStatus={setTipStatus}
             onEditTech={(name) => canEdit && setTechEditor({ tech: data.technicians.find((t) => t.name === name) || null, initialName: name })}
           />
         </main>
