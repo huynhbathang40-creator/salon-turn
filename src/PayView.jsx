@@ -68,7 +68,7 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
   }
 
   // sized so the whole card fits on one screen (iPhone and iPad), like the tip popup
-  const qrSize = "w-[min(60vw,30svh,280px)] sm:w-[min(340px,40dvh)]";
+  const qrSize = "w-[min(56vw,27svh,280px)] sm:w-[min(340px,40dvh)]";
 
   return (
     <div className="space-y-3 sm:space-y-5 max-w-md sm:max-w-3xl mx-auto">

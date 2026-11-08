@@ -1,13 +1,14 @@
 // Short "how to pay" steps, shown next to / above the QR code (all modes).
+// This one component is used for every technician and the salon Pay page, so the steps are always the same.
 // Colors come from classes (scan-zelle / scan-venmo) so dark mode can restyle them in dark.css.
 const STEPS = {
   zelle: {
     title: "How to pay with Zelle",
-    steps: ["Open your bank app.", "Tap Zelle®, then “Send”.", "Tap the QR icon and scan this code."],
+    steps: ["Open your bank app.", "Tap “Pay & Transfer”.", "Tap Zelle®, then “Send”.", "Tap the QR icon and scan this code."],
   },
   venmo: {
     title: "How to pay with Venmo",
-    steps: ["Open the Venmo app.", "Tap “Scan” (or the QR icon).", "Scan this code."],
+    steps: ["Open your phone's Camera (or the Venmo app).", "Point it at this code.", "Tap the Venmo link that pops up and pay."],
   },
 };
 
