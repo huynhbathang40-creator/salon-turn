@@ -8,6 +8,7 @@ import SortableList from "./SortableList.jsx";
 import HistoryPanel from "./HistoryPanel.jsx";
 import RewanowButton from "./RewanowButton.jsx";
 import TipsView from "./TipsView.jsx";
+import PayView from "./PayView.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -49,15 +50,16 @@ export default function App() {
   const [confirmNewDay, setConfirmNewDay] = useState(false);
   const [message, setMessage] = useState("");
   // which screen: turn board or tip directory (kept in the link, e.g. .../#tips)
-  const [tab, setTab] = useState(() => (window.location.hash === "#tips" ? "tips" : "turns"));
+  const tabFromHash = () => ({ "#tips": "tips", "#pay": "pay" })[window.location.hash] || "turns";
+  const [tab, setTab] = useState(tabFromHash);
   useEffect(() => {
-    const onHash = () => setTab(window.location.hash === "#tips" ? "tips" : "turns");
+    const onHash = () => setTab(tabFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
   function goTab(key) {
     setTab(key);
-    history.replaceState(null, "", key === "tips" ? "#tips" : window.location.pathname + window.location.search);
+    history.replaceState(null, "", key === "turns" ? window.location.pathname + window.location.search : "#" + key);
     window.scrollTo(0, 0);
   }
   const [confirmRemoveId, setConfirmRemoveId] = useState(null); // step 1 of removing a turn
@@ -100,6 +102,13 @@ export default function App() {
   }, []);
 
   const setData = (updater) => (canEdit ? store.update(updater) : undefined);
+
+  // salon Zelle (Pay tab): kept on the shared board so every device sees it; only owner mode can change it
+  async function saveSalonPay(pay) {
+    if (!canEdit || !isOwner) throw new Error("Owner mode is needed to change this.");
+    await store.update((p) => ({ ...p, salonPay: pay }));
+    notify("Salon Zelle saved.");
+  }
 
   function notify(text) {
     setMessage(text);
@@ -392,7 +401,7 @@ export default function App() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2.5">
           <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 max-w-xs">
-            {[["turns", "Turns"], ["tips", "Tips"]].map(([key, label]) => (
+            {[["turns", "Turns"], ["tips", "Tips"], ["pay", "Pay"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}
@@ -405,7 +414,11 @@ export default function App() {
         </div>
       </header>
 
-      {tab === "tips" ? (
+      {tab === "pay" ? (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
+          <PayView pay={data.salonPay} isOwner={canEdit && isOwner} onSave={saveSalonPay} />
+        </main>
+      ) : tab === "tips" ? (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 w-full flex-grow">
           <TipsView
             technicians={sortByName(data.technicians)}
