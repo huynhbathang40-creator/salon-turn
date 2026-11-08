@@ -204,6 +204,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
           <p className="text-xs font-bold tracking-wider mb-2" style={{ color }}>
             {image || !qr ? `SCAN ${method.toUpperCase()} QR CODE` : method.toUpperCase()}
           </p>
+          {image && <ScanSteps method={method} />}
           <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: color }}>
             {!qr ? (
               <div className="w-[min(70vw,280px)] aspect-square flex items-center justify-center"><Loader2 className="animate-spin" style={{ color }} /></div>
@@ -226,8 +227,6 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
             </button>
           </div>
         )}
-
-        {image && <ScanSteps method={method} />}
 
         {onSent && (hasZelle || hasVenmo) && (
           sent === "done" ? (

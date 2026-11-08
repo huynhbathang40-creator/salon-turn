@@ -110,6 +110,7 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
           <p className="text-xs font-bold tracking-wider mt-5 mb-2" style={{ color: m.color }}>
             {image ? `SCAN ${m.label.toUpperCase()} QR CODE` : m.label.toUpperCase()}
           </p>
+          {image && <ScanSteps method={method} />}
           <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: m.color }}>
             {image ? (
               <img src={image} alt={`Salon ${m.label} QR code`} className="w-[min(70vw,280px)] aspect-square object-contain" />
@@ -129,7 +130,6 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
               </button>
             </div>
           )}
-          {image && <ScanSteps method={method} />}
           <p className="text-[11px] text-brand-softSlate text-center mt-4">{m.hint}</p>
           {isOwner && (
             <button onClick={() => setEditing(true)} className="mt-3 text-xs text-brand-softSlate underline inline-flex items-center gap-1">

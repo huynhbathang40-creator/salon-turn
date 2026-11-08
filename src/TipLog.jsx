@@ -108,8 +108,9 @@ export function TipCheckPanel({ tips, onStatus }) {
 /** Owner only: every tip check by day — tech, when the customer sent it, when it was received */
 export function TipHistory({ tips }) {
   const [openDay, setOpenDay] = useState(null);
+  const [view, setView] = useState("tech"); // tech | time
   const byDay = new Map();
-  for (const t of (tips || []).slice().reverse()) {
+  for (const t of (tips || []).slice().sort((x, y) => (x.at < y.at ? 1 : -1))) {
     if (!byDay.has(t.date)) byDay.set(t.date, []);
     byDay.get(t.date).push(t);
   }
@@ -141,31 +142,79 @@ export function TipHistory({ tips }) {
             ))}
           </div>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 text-[11px] font-bold uppercase tracking-wider text-brand-softSlate px-1">
-            <span>Technician</span><span className="text-right">Sent</span><span className="text-right w-[92px]">Received</span>
-          </div>
-          <ul className="divide-y divide-brand-borderLight border-y border-brand-borderLight">
-            {(byDay.get(shown) || []).map((t) => (
-              <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 items-center py-2.5 px-1 text-sm">
-                <span className="min-w-0">
-                  <span className="font-bold text-brand-charcoal block truncate">{t.techName}</span>
-                  <span className="text-[11px] text-brand-softSlate">{methodLabel[t.method] || "Tip"}</span>
-                </span>
-                <span className="text-right text-brand-charcoal tabular-nums">{time(t.at)}</span>
-                <span className="text-right w-[92px] tabular-nums">
-                  {t.status === "ok" ? (
-                    <span className="text-emerald-700 font-semibold">{t.checkedAt ? time(t.checkedAt) : "Received"}</span>
-                  ) : t.status === "no" ? (
-                    <span className="text-rose-700 font-semibold text-xs">Not received</span>
-                  ) : (
-                    <span className="text-amber-700 font-semibold text-xs">Pending</span>
-                  )}
-                </span>
-              </li>
+          <div className="grid grid-cols-2 bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1">
+            {[["tech", "By technician"], ["time", "By time"]].map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setView(k)}
+                className={`py-2 rounded-lg text-sm font-bold transition ${view === k ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
+              >
+                {label}
+              </button>
             ))}
-          </ul>
+          </div>
+
+          {view === "time" ? (
+            <TipRows list={byDay.get(shown) || []} showName />
+          ) : (
+            <div className="space-y-3">
+              {groupByTech(byDay.get(shown) || []).map((g) => (
+                <div key={g.name} className="rounded-xl border border-brand-borderLight overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-brand-warmIvory">
+                    <span className="font-bold text-brand-charcoal">{g.name}</span>
+                    <span className="text-xs text-brand-softSlate">
+                      <b className="text-emerald-700">{g.ok}</b> received · {g.list.length} total
+                    </span>
+                  </div>
+                  <div className="px-2"><TipRows list={g.list} /></div>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+function groupByTech(list) {
+  const map = new Map();
+  for (const t of list) {
+    if (!map.has(t.techName)) map.set(t.techName, { name: t.techName, list: [], ok: 0 });
+    const g = map.get(t.techName);
+    g.list.push(t);
+    if (t.status === "ok") g.ok++;
+  }
+  return [...map.values()].sort((a, b) => b.ok - a.ok || a.name.localeCompare(b.name));
+}
+
+function TipRows({ list, showName = false }) {
+  const cols = "grid-cols-[minmax(0,1fr)_auto_auto]";
+  return (
+    <>
+      <div className={`grid ${cols} gap-x-3 text-[11px] font-bold uppercase tracking-wider text-brand-softSlate px-1 pt-2 pb-1`}>
+        <span>{showName ? "Technician" : "Method"}</span><span className="text-right">Sent</span><span className="text-right w-[92px]">Received</span>
+      </div>
+      <ul className="divide-y divide-brand-borderLight border-t border-brand-borderLight">
+        {list.map((t) => (
+          <li key={t.id} className={`grid ${cols} gap-x-3 items-center py-2.5 px-1 text-sm`}>
+            <span className="min-w-0">
+              {showName && <span className="font-bold text-brand-charcoal block truncate">{t.techName}</span>}
+              <span className={showName ? "text-[11px] text-brand-softSlate" : "text-brand-charcoal"}>{methodLabel[t.method] || "Tip"}</span>
+            </span>
+            <span className="text-right text-brand-charcoal tabular-nums">{time(t.at)}</span>
+            <span className="text-right w-[92px] tabular-nums">
+              {t.status === "ok" ? (
+                <span className="text-emerald-700 font-semibold">{t.checkedAt ? time(t.checkedAt) : "Received"}</span>
+              ) : t.status === "no" ? (
+                <span className="text-rose-700 font-semibold text-xs">Not received</span>
+              ) : (
+                <span className="text-amber-700 font-semibold text-xs">Pending</span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
