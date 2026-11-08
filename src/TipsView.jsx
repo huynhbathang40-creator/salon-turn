@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle, Sparkles } from "lucide-react";
+import { Search, X, Copy, Check, QrCode, Loader2, Pencil, AlertCircle, Sparkles } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
@@ -25,7 +25,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
     <div className="space-y-5">
       <div className="text-center pt-2">
         <h2 className="font-serif text-3xl font-bold text-brand-charcoal">Select Your Specialist</h2>
-        <p className="text-sm text-brand-softSlate mt-1">Tap a name to tip with Zelle or Venmo</p>
+        <p className="text-sm text-brand-softSlate mt-1">Tap your technician to tip with Zelle or Venmo</p>
       </div>
 
       {canEdit && rows && missing.length > 0 && (
@@ -60,13 +60,9 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
               onClick={() => (tip ? setSelected({ tech, tip }) : onEditTech?.(tech.name))}
               className={`bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${tip ? "border-brand-borderLight" : "border-dashed border-amber-300"}`}
             >
-              <Avatar name={tech.name} size={72} />
-              <span className="font-bold text-brand-charcoal text-base">{tech.name}</span>
-              {tip ? (
-                <span className="w-full py-2 rounded-full bg-brand-charcoal text-white text-xs font-bold flex items-center justify-center gap-1.5">
-                  <Heart size={12} /> Tip {tech.name.split(" ")[0]}
-                </span>
-              ) : (
+              <Avatar name={tech.name} size={96} />
+              <span className="font-serif font-bold text-brand-charcoal text-2xl sm:text-[26px] leading-tight text-center break-words w-full">{tech.name}</span>
+              {!tip && (
                 <span className="w-full py-2 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5">
                   <Pencil size={12} /> Add Zelle / Venmo
                 </span>

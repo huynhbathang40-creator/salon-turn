@@ -9,6 +9,8 @@ import HistoryPanel from "./HistoryPanel.jsx";
 import RewanowButton from "./RewanowButton.jsx";
 import TipsView from "./TipsView.jsx";
 import PayView from "./PayView.jsx";
+import KioskView from "./KioskView.jsx";
+import { useKiosk } from "./kiosk.js";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -39,6 +41,7 @@ const callBtn = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-x
 
 export default function App() {
   const { isManager: canEdit } = useManager(); // false = view only (no PIN on this device)
+  const kiosk = useKiosk(); // customer mode on this iPad: only Tips + Pay
   const { isOwner } = useOwner(); // owner mode: +1 / under-$30 tools visible (separate owner PIN)
   const [store, setStore] = useState(null);
   const [data, setBoard] = useState(null);
@@ -331,6 +334,8 @@ export default function App() {
         </div>
       </div>
     );
+
+  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} />;
 
   const isCloud = store.mode === "cloud";
   const sortedTechs = sortByName(data.technicians); // A–Z, owners last

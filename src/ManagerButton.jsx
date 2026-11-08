@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Lock, Unlock, X, Delete, Loader2, ShieldCheck, Gem, Crown } from "lucide-react";
+import { Lock, Unlock, X, Delete, Loader2, ShieldCheck, Gem, Crown, Store } from "lucide-react";
+import { KioskPin } from "./KioskView.jsx";
 import { useManager, login, setupPin, logout, LOCK_ENABLED } from "./auth.js";
 import { hasCloud } from "./db.js";
 import { useShowCalls } from "./phones.js";
@@ -15,6 +16,7 @@ export default function ManagerButton({ onMessage }) {
   const [openPin, setOpenPin] = useState(false); // false | "manager" | "owner"
   const { isOwner } = useOwner();
   const [menu, setMenu] = useState(false);
+  const [kioskPin, setKioskPin] = useState(false);
   if (!hasCloud || !LOCK_ENABLED) return null;
 
   return (
@@ -82,6 +84,12 @@ export default function ManagerButton({ onMessage }) {
                 </button>
               )}
               <button
+                onClick={() => { setMenu(false); setKioskPin(true); }}
+                className="w-full mb-2.5 py-3.5 rounded-2xl border border-brand-borderLight text-brand-charcoal text-sm font-bold flex items-center justify-center gap-1.5"
+              >
+                <Store size={14} /> Customer mode (Tips + Pay only)
+              </button>
+              <button
                 onClick={async () => { setMenu(false); exitOwner(); await logout(); onMessage?.("This device is now view only."); }}
                 className="w-full py-3.5 rounded-2xl bg-brand-charcoal text-white text-sm font-bold flex items-center justify-center gap-1.5"
               >
@@ -91,6 +99,8 @@ export default function ManagerButton({ onMessage }) {
           </div>,
           document.body
         )}
+
+      {kioskPin && createPortal(<KioskPin mode="start" onClose={() => setKioskPin(false)} onDone={() => setKioskPin(false)} />, document.body)}
 
       {/* Rendered on <body>: inside the blurred header a full-screen layer would be squeezed into the header */}
       {openPin &&
@@ -301,7 +311,7 @@ function PinScreen({ mode = "manager", onClose, onDone }) {
   );
 }
 
-function Key({ children, onPress }) {
+export function Key({ children, onPress }) {
   return (
     <button
       onClick={onPress}
