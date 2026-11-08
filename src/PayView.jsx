@@ -131,17 +131,18 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
               </div>
             </div>
 
-            {image && (
-              <div className="order-1 sm:order-none sm:col-start-2 sm:row-start-1 sm:self-end">
+            {/* steps + info boxes keep their place when switching Zelle / Venmo (hidden, not removed) */}
+            {(qr?.zelle_qr || qr?.venmo_qr) && (
+              <div className={`order-1 sm:order-none sm:col-start-2 sm:row-start-1 sm:self-end ${image ? "" : "invisible"}`} aria-hidden={!image}>
                 <ScanSteps method={method} />
               </div>
             )}
 
-            {handle && (
-              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-2.5 sm:py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
+            {(info.zelle || info.venmo) && (
+              <div aria-hidden={!handle} className={`${handle ? "" : "invisible"} order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-2.5 sm:py-3 border border-dashed border-brand-borderLight flex items-center gap-3`}>
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
-                  <div className="text-base sm:text-lg font-bold text-brand-charcoal break-all">{handle}</div>
+                  <div className="text-base sm:text-lg font-bold text-brand-charcoal break-all">{handle || "\u00a0"}</div>
                 </div>
                 <button onClick={copy} className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
                   {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
