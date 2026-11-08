@@ -1,4 +1,4 @@
-// Customer mode: short "how to pay" steps under the QR code
+// Short "how to pay" steps under the QR code (all modes)
 const STEPS = {
   zelle: {
     color: "#7414ca",

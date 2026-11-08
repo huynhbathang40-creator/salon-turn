@@ -129,7 +129,7 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
               </button>
             </div>
           )}
-          {simple && image && <ScanSteps method={method} />}
+          {image && <ScanSteps method={method} />}
           <p className="text-[11px] text-brand-softSlate text-center mt-4">{m.hint}</p>
           {isOwner && (
             <button onClick={() => setEditing(true)} className="mt-3 text-xs text-brand-softSlate underline inline-flex items-center gap-1">

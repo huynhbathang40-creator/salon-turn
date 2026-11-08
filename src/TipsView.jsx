@@ -207,7 +207,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple }) {
           </div>
         )}
 
-        {simple && image && <ScanSteps method={method} />}
+        {image && <ScanSteps method={method} />}
 
         <p className="text-[11px] text-brand-softSlate text-center mt-4">
           {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}
