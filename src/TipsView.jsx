@@ -4,14 +4,14 @@ import Avatar from "./Avatar.jsx";
 import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
 import ScanSteps from "./ScanSteps.jsx";
-import { TipCheckPanel } from "./TipLog.jsx";
+import { TipCheckPanel, TipHistory } from "./TipLog.jsx";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
 // each person's Zelle / Venmo comes from the tip info saved for that name.
 // simple = customer mode: just the photo and a big name on each card
 // onTipSent(tech, method): saves an "I've sent it" check (only on devices that can save)
 // tipChecks + onTipStatus: today's checks for the manager panel
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus }) {
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory }) {
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -43,6 +43,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       )}
 
       {canEdit && tipChecks && onTipStatus && <TipCheckPanel tips={tipChecks} onStatus={onTipStatus} />}
+      {canEdit && tipHistory && <TipHistory tips={tipHistory} />}
 
       {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows.filter((r) => (r.name_key || tipKey(r.name)) !== SALON_PAY_KEY)} />}
 

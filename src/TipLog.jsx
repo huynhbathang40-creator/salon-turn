@@ -104,3 +104,68 @@ export function TipCheckPanel({ tips, onStatus }) {
     </div>
   );
 }
+
+/** Owner only: every tip check by day — tech, when the customer sent it, when it was received */
+export function TipHistory({ tips }) {
+  const [openDay, setOpenDay] = useState(null);
+  const byDay = new Map();
+  for (const t of (tips || []).slice().reverse()) {
+    if (!byDay.has(t.date)) byDay.set(t.date, []);
+    byDay.get(t.date).push(t);
+  }
+  const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  const shown = openDay ?? days[0]?.[0];
+
+  return (
+    <div className="max-w-xl mx-auto rounded-2xl border border-brand-borderGold bg-white p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-brand-charcoal flex items-center gap-2">
+          <Clock size={17} className="text-brand-gold" /> Tip history
+        </span>
+        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-lightGold text-brand-gold border border-brand-borderGold">Owner</span>
+      </div>
+
+      {days.length === 0 ? (
+        <p className="text-sm text-brand-softSlate">No tips yet.</p>
+      ) : (
+        <>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {days.map(([d, list]) => (
+              <button
+                key={d}
+                onClick={() => setOpenDay(d)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border ${d === shown ? "bg-brand-charcoal text-white border-brand-charcoal" : "bg-white text-brand-softSlate border-brand-borderLight"}`}
+              >
+                {d} · {list.length}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 text-[11px] font-bold uppercase tracking-wider text-brand-softSlate px-1">
+            <span>Technician</span><span className="text-right">Sent</span><span className="text-right w-[92px]">Received</span>
+          </div>
+          <ul className="divide-y divide-brand-borderLight border-y border-brand-borderLight">
+            {(byDay.get(shown) || []).map((t) => (
+              <li key={t.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 items-center py-2.5 px-1 text-sm">
+                <span className="min-w-0">
+                  <span className="font-bold text-brand-charcoal block truncate">{t.techName}</span>
+                  <span className="text-[11px] text-brand-softSlate">{methodLabel[t.method] || "Tip"}</span>
+                </span>
+                <span className="text-right text-brand-charcoal tabular-nums">{time(t.at)}</span>
+                <span className="text-right w-[92px] tabular-nums">
+                  {t.status === "ok" ? (
+                    <span className="text-emerald-700 font-semibold">{t.checkedAt ? time(t.checkedAt) : "Received"}</span>
+                  ) : t.status === "no" ? (
+                    <span className="text-rose-700 font-semibold text-xs">Not received</span>
+                  ) : (
+                    <span className="text-amber-700 font-semibold text-xs">Pending</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}

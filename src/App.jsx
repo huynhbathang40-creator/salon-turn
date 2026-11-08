@@ -445,6 +445,7 @@ export default function App() {
             onTipSent={canEdit ? logTipSent : null}
             tipChecks={todaysTips(data)}
             onTipStatus={setTipStatus}
+            tipHistory={isOwner ? data.tips || [] : null}
             onEditTech={(name) => canEdit && setTechEditor({ tech: data.technicians.find((t) => t.name === name) || null, initialName: name })}
           />
         </main>
