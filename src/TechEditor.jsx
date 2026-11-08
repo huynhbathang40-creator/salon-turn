@@ -204,7 +204,7 @@ export default function TechEditor({ tech, initialName = "", technicians, onSave
   );
 }
 
-function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loading, onQr, onError, inputClass }) {
+export function PaymentBox({ label, color, bg, placeholder, value, onChange, qr, loading, onQr, onError, inputClass }) {
   const fileRef = useRef(null);
   const [working, setWorking] = useState(false);
   const [status, setStatus] = useState(null); // "cleaned" | "notfound" | "original"

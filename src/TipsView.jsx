@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle, Sparkles } from "lucide-react";
 import Avatar from "./Avatar.jsx";
-import { useTipRows, getQr, tipKey, saveTechTip } from "./tips.js";
+import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
@@ -37,7 +37,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
         </div>
       )}
 
-      {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows} />}
+      {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows.filter((r) => (r.name_key || tipKey(r.name)) !== SALON_PAY_KEY)} />}
 
       <div className="relative max-w-md mx-auto">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-softSlate" />

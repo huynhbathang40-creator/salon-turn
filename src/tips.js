@@ -4,6 +4,8 @@ import { getToken } from "./auth.js";
 
 // Tip info (Zelle / Venmo) for each technician, matched to the turn board by name.
 export const tipKey = (name) => (name || "").trim().toLowerCase();
+// the salon's own Zelle (Pay tab) is kept as one extra hidden row with this name
+export const SALON_PAY_KEY = "__salon_pay__";
 
 const LIST_KEY = "salon-turn-tips-list-v2";
 let rows = (() => { try { return JSON.parse(localStorage.getItem(LIST_KEY) || "null"); } catch { return null; } })();

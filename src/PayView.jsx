@@ -1,59 +1,50 @@
 import { useEffect, useState } from "react";
-import { Copy, Check, Loader2, Pencil, Store, X, AlertCircle } from "lucide-react";
+import { Copy, Check, Loader2, Pencil, Store, X, AlertCircle, QrCode } from "lucide-react";
+import { useTipRows, getQr, saveTechTip, SALON_PAY_KEY } from "./tips.js";
+import { PaymentBox } from "./TechEditor.jsx";
+import { hasCloud } from "./db.js";
 
 // Salon payment page: customers pay the service (sale) straight to the owner's Zelle.
-// The owner only types a name + phone/email; the Zelle QR is made here, nothing is uploaded.
+// The QR picture is the one the owner's bank gives; it is uploaded and cleaned like the tip QRs.
+// Name + phone live on the shared board; the QR picture is a hidden row in the tip table (loaded only here).
 
 const ZELLE = "#7414ca";
 
-// "(561) 555-1234" -> "5615551234"; emails are kept (lowercase)
-export function cleanZelle(value) {
+function cleanPhone(value) {
   const v = (value || "").trim();
   if (v.includes("@")) return v.toLowerCase();
   let d = v.replace(/\D/g, "");
   if (d.length === 11 && d.startsWith("1")) d = d.slice(1);
   return d;
 }
+const showZelle = (v) => (/^\d{10}$/.test(v || "") ? `(${v.slice(0, 3)}) ${v.slice(3, 6)}-${v.slice(6)}` : v || "");
 
-export function zelleError(value) {
-  const v = cleanZelle(value);
-  if (!v) return "Enter the Zelle phone number or email.";
-  if (v.includes("@")) return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) ? "" : "This email doesn't look right.";
-  return v.length === 10 ? "" : "Phone number must have 10 digits.";
-}
-
-const showZelle = (v) => (/^\d{10}$/.test(v) ? `(${v.slice(0, 3)}) ${v.slice(3, 6)}-${v.slice(6)}` : v);
-
-// Same format the banks use for their Zelle QR codes
-function zelleLink(name, token) {
-  const json = JSON.stringify({ name: name.trim().toUpperCase(), token, action: "payment" });
-  const bytes = new TextEncoder().encode(json);
-  let bin = "";
-  bytes.forEach((b) => (bin += String.fromCharCode(b)));
-  return "https://enroll.zellepay.com/qr-codes?data=" + btoa(bin);
-}
-
-function useZelleQr(name, token) {
-  const [img, setImg] = useState(null);
+// the saved QR picture; reloads when another device changes it
+function useSalonQr() {
+  const { rows, loadError } = useTipRows();
+  const [qr, setQr] = useState(undefined); // undefined = loading
+  const row = (rows || []).find((r) => r.name_key === SALON_PAY_KEY);
   useEffect(() => {
-    if (!name || !token) return setImg(null);
+    if (!rows) return setQr(!hasCloud || loadError ? null : undefined);
+    if (!row) return setQr(null);
     let alive = true;
-    import("qrcode").then(({ default: QRCode }) =>
-      QRCode.toDataURL(zelleLink(name, token), { errorCorrectionLevel: "M", margin: 2, width: 720, color: { dark: "#000000", light: "#ffffff" } })
-    ).then((url) => alive && setImg(url)).catch((e) => console.error(e));
+    getQr(SALON_PAY_KEY).then((v) => alive && setQr(v.zelle_qr || null)).catch(() => alive && setQr(null));
     return () => { alive = false; };
-  }, [name, token]);
-  return img;
+  }, [rows, row, loadError]);
+  return { qr, row };
 }
 
-export default function PayView({ pay, isOwner, onSave }) {
+export default function PayView({ pay, isOwner, onSaveInfo }) {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
-  const ready = Boolean(pay?.name && pay?.zelle);
-  const qr = useZelleQr(pay?.name, pay?.zelle);
+  const { qr, row } = useSalonQr();
+  const name = pay?.name || "";
+  const zelle = pay?.zelle || row?.zelle || "";
+  const loading = qr === undefined;
+  const ready = Boolean(qr || zelle);
 
   function copy() {
-    navigator.clipboard?.writeText(pay.zelle).then(() => {
+    navigator.clipboard?.writeText(zelle).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     });
@@ -66,7 +57,9 @@ export default function PayView({ pay, isOwner, onSave }) {
         <p className="text-sm text-brand-softSlate mt-1">Scan with your bank app to pay the salon with Zelle</p>
       </div>
 
-      {!ready ? (
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-gold" /></div>
+      ) : !ready ? (
         <div className="bg-white rounded-3xl border border-dashed border-brand-borderLight p-8 text-center">
           <Store size={30} className="text-brand-gold/50 mx-auto mb-2" />
           <p className="text-sm text-brand-softSlate">Salon payment is not set up yet.</p>
@@ -80,26 +73,28 @@ export default function PayView({ pay, isOwner, onSave }) {
         </div>
       ) : (
         <div className="bg-white rounded-3xl border border-brand-borderLight shadow-sm p-6 flex flex-col items-center">
-          <div className="font-bold text-xl text-brand-charcoal text-center">{pay.name}</div>
-          <p className="text-xs font-bold tracking-wider mt-4 mb-2" style={{ color: ZELLE }}>SCAN ZELLE QR CODE</p>
+          {name && <div className="font-bold text-xl text-brand-charcoal text-center mb-4">{name}</div>}
+          <p className="text-xs font-bold tracking-wider mb-2" style={{ color: ZELLE }}>{qr ? "SCAN ZELLE QR CODE" : "ZELLE"}</p>
           <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: ZELLE }}>
             {qr ? (
-              <img src={qr} alt={`${pay.name} Zelle QR code`} className="w-[min(70vw,280px)] aspect-square object-contain" />
+              <img src={qr} alt="Salon Zelle QR code" className="w-[min(70vw,280px)] aspect-square object-contain" />
             ) : (
-              <div className="w-[min(70vw,280px)] aspect-square flex items-center justify-center"><Loader2 className="animate-spin" style={{ color: ZELLE }} /></div>
+              <div className="w-[min(70vw,280px)] aspect-[2/1] flex flex-col items-center justify-center text-brand-softSlate text-xs gap-2">
+                <QrCode size={28} className="opacity-30" /> No QR code, use the info below
+              </div>
             )}
           </div>
 
-          <div className="mt-5 w-full bg-brand-warmIvory rounded-2xl p-4 text-center border border-dashed border-brand-borderLight">
-            <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">Zelle phone / email</div>
-            <div className="text-lg font-bold text-brand-charcoal break-all mt-0.5">{showZelle(pay.zelle)}</div>
-            <button onClick={copy} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
-              {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-          <p className="text-[11px] text-brand-softSlate text-center mt-4">
-            Check that your bank app shows <b>{pay.name.toUpperCase()}</b> before you send.
-          </p>
+          {zelle && (
+            <div className="mt-5 w-full bg-brand-warmIvory rounded-2xl p-4 text-center border border-dashed border-brand-borderLight">
+              <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">Zelle phone / email</div>
+              <div className="text-lg font-bold text-brand-charcoal break-all mt-0.5">{showZelle(zelle)}</div>
+              <button onClick={copy} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
+                {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          )}
+          <p className="text-[11px] text-brand-softSlate text-center mt-4">Scan with your bank app, or copy the Zelle info.</p>
           {isOwner && (
             <button onClick={() => setEditing(true)} className="mt-3 text-xs text-brand-softSlate underline inline-flex items-center gap-1">
               <Pencil size={12} /> Edit salon Zelle
@@ -108,40 +103,47 @@ export default function PayView({ pay, isOwner, onSave }) {
         </div>
       )}
 
-      {editing && <PayEditor pay={pay} onSave={onSave} onClose={() => setEditing(false)} />}
+      {editing && <PayEditor name={name} zelle={zelle} savedQr={qr || null} onSaveInfo={onSaveInfo} onClose={() => setEditing(false)} />}
     </div>
   );
 }
 
-function PayEditor({ pay, onSave, onClose }) {
-  const [name, setName] = useState(pay?.name || "");
-  const [zelle, setZelle] = useState(pay?.zelle ? showZelle(pay.zelle) : "");
+function PayEditor({ name: savedName, zelle: savedZelle, savedQr, onSaveInfo, onClose }) {
+  const [name, setName] = useState(savedName);
+  const [zelle, setZelle] = useState(showZelle(savedZelle));
+  const [qr, setQr] = useState(savedQr); // what is shown in the box
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const previewName = name.trim();
-  const previewToken = zelleError(zelle) ? "" : cleanZelle(zelle);
-  const preview = useZelleQr(previewName, previewToken);
 
   async function save(e) {
     e.preventDefault();
-    if (!name.trim()) return setError("Enter the name customers will see (the name on the Zelle account).");
-    const err = zelleError(zelle);
-    if (err) return setError(err);
+    const z = cleanPhone(zelle);
+    if (z && !z.includes("@") && z.length !== 10) return setError("Phone number must have 10 digits.");
+    if (!qr && !z) return setError("Upload the QR picture or enter the Zelle phone (at least one).");
     setSaving(true);
     try {
-      await onSave({ name: name.trim(), zelle: cleanZelle(zelle) });
+      await saveTechTip({
+        oldName: SALON_PAY_KEY,
+        name: SALON_PAY_KEY,
+        zelle: z,
+        zelleQr: qr === savedQr ? undefined : qr || "",
+        venmo: "",
+      });
+      await onSaveInfo({ name: name.trim(), zelle: z });
       onClose();
     } catch (e2) {
-      setError(e2?.message || "Could not save.");
+      setError(e2?.message || "Could not save. Check the internet connection.");
       setSaving(false);
     }
   }
+
+  const input = "w-full bg-brand-warmIvory border border-brand-borderLight rounded-xl px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-brand-gold";
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <form
         onSubmit={save}
-        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 pb-safe max-h-[94vh] overflow-y-auto relative toast-in space-y-4"
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 pb-safe max-h-[94vh] overflow-y-auto relative toast-in space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <button type="button" onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
@@ -150,25 +152,23 @@ function PayEditor({ pay, onSave, onClose }) {
         <h3 className="font-serif text-xl font-bold text-brand-charcoal">Salon Zelle</h3>
 
         <label className="block">
-          <span className="text-xs font-bold text-brand-softSlate uppercase tracking-wider">Name on the Zelle account</span>
-          <input value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={60} placeholder="e.g. Beautiluxe Nails"
-            className="mt-1 w-full border border-brand-borderLight rounded-xl px-3.5 py-3 text-base sm:text-sm focus:outline-none focus:border-brand-gold" />
-        </label>
-        <label className="block">
-          <span className="text-xs font-bold text-brand-softSlate uppercase tracking-wider">Zelle phone number or email</span>
-          <input value={zelle} onChange={(e) => { setZelle(e.target.value); setError(""); }} inputMode="tel" placeholder="(561) 555-1234"
-            className="mt-1 w-full border border-brand-borderLight rounded-xl px-3.5 py-3 text-base sm:text-sm focus:outline-none focus:border-brand-gold" />
+          <span className="block text-xs font-bold text-brand-softSlate mb-1">Name shown above the QR (optional)</span>
+          <input value={name} onChange={(e) => { setName(e.target.value); setError(""); }} maxLength={60} placeholder="e.g. Beautiluxe Nails" className={input} />
         </label>
 
-        {previewName && previewToken && (
-          <div className="flex flex-col items-center">
-            <p className="text-[11px] font-bold tracking-wider mb-1.5" style={{ color: ZELLE }}>PREVIEW</p>
-            <div className="rounded-xl p-2 bg-white qr-surface border-2 border-dashed" style={{ borderColor: ZELLE }}>
-              {preview ? <img src={preview} alt="Zelle QR preview" className="w-40 h-40" /> : <div className="w-40 h-40" />}
-            </div>
-            <p className="text-[11px] text-brand-softSlate mt-1.5 text-center">Test it once: scan with your own bank app and check it opens the right account.</p>
-          </div>
-        )}
+        <PaymentBox
+          label="Zelle"
+          color={ZELLE}
+          bg="#faf5ff"
+          placeholder="Zelle phone or email (optional)"
+          value={zelle}
+          onChange={(v) => { setZelle(v); setError(""); }}
+          qr={qr}
+          loading={false}
+          onQr={(v) => { setQr(v || null); setError(""); }}
+          onError={setError}
+          inputClass={input}
+        />
 
         {error && <p className="text-sm text-rose-700 flex gap-1.5"><AlertCircle size={16} className="shrink-0 mt-0.5" />{error}</p>}
 
