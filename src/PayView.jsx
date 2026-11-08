@@ -3,6 +3,7 @@ import { Copy, Check, Loader2, Pencil, Store, X, AlertCircle, QrCode } from "luc
 import { useTipRows, getQr, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { PaymentBox } from "./TechEditor.jsx";
 import { hasCloud } from "./db.js";
+import ScanSteps from "./ScanSteps.jsx";
 
 // Salon payment page: customers pay the service (sale) straight to the owner, by Zelle or Venmo.
 // The QR pictures are the ones the owner's apps give; they are uploaded and cleaned like the tip QRs.
@@ -40,7 +41,8 @@ function useSalonPay() {
   return { qr, row };
 }
 
-export default function PayView({ pay, isOwner, onSaveInfo }) {
+// simple = customer mode: shows the "how to pay" steps
+export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [picked, setPicked] = useState(null);
@@ -127,6 +129,7 @@ export default function PayView({ pay, isOwner, onSaveInfo }) {
               </button>
             </div>
           )}
+          {simple && image && <ScanSteps method={method} />}
           <p className="text-[11px] text-brand-softSlate text-center mt-4">{m.hint}</p>
           {isOwner && (
             <button onClick={() => setEditing(true)} className="mt-3 text-xs text-brand-softSlate underline inline-flex items-center gap-1">

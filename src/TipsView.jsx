@@ -3,6 +3,7 @@ import { Search, X, Copy, Check, QrCode, Loader2, Heart, Pencil, AlertCircle, Sp
 import Avatar from "./Avatar.jsx";
 import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
+import ScanSteps from "./ScanSteps.jsx";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
 // each person's Zelle / Venmo comes from the tip info saved for that name.
@@ -95,6 +96,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           name={selected.tech.name}
           tip={selected.tip}
           canEdit={canEdit}
+          simple={simple}
           onEdit={() => { setSelected(null); onEditTech?.(selected.tech.name); }}
           onClose={() => setSelected(null)}
         />
@@ -103,7 +105,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
   );
 }
 
-function TipModal({ name, tip, onClose, canEdit, onEdit }) {
+function TipModal({ name, tip, onClose, canEdit, onEdit, simple }) {
   const key = tip.name_key || tipKey(tip.name);
   const [qr, setQr] = useState(null);
   const [method, setMethod] = useState(tip.zelle ? "zelle" : tip.venmo ? "venmo" : "zelle");
@@ -204,6 +206,8 @@ function TipModal({ name, tip, onClose, canEdit, onEdit }) {
             </button>
           </div>
         )}
+
+        {simple && image && <ScanSteps method={method} />}
 
         <p className="text-[11px] text-brand-softSlate text-center mt-4">
           {method === "zelle" ? "Scan with your bank app, or copy the Zelle info." : "Scan with the Venmo app, or copy the username."}
