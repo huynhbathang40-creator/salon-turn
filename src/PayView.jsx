@@ -68,13 +68,13 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
   }
 
   // sized so the whole card fits on one screen (iPhone and iPad), like the tip popup
-  const qrSize = "w-[min(58vw,28dvh,300px)] sm:w-[min(340px,40dvh)]";
+  const qrSize = "w-[min(60vw,30svh,280px)] sm:w-[min(340px,40dvh)]";
 
   return (
     <div className="space-y-3 sm:space-y-5 max-w-md sm:max-w-3xl mx-auto">
       <div className="text-center">
-        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-brand-charcoal">Pay for Your Service</h2>
-        <p className="text-xs sm:text-sm text-brand-softSlate mt-0.5">
+        <h2 className="hidden sm:block font-serif text-3xl font-bold text-brand-charcoal">Pay for Your Service</h2>
+        <p className="text-[13px] sm:text-sm text-brand-softSlate sm:mt-0.5">
           {/* phone: the salon name goes here instead of inside the card, to save space */}
           <span className="sm:hidden">{name ? <>Pay <b className="text-brand-charcoal">{name}</b> with Zelle or Venmo</> : "Scan to pay the salon with Zelle or Venmo"}</span>
           <span className="hidden sm:inline">Scan to pay the salon with Zelle or Venmo</span>
@@ -96,16 +96,16 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-brand-borderLight shadow-sm p-4 sm:p-7">
+        <div className="bg-white rounded-3xl border border-brand-borderLight shadow-sm p-3.5 sm:p-7">
           {name && <div className="hidden sm:block font-bold text-2xl text-brand-charcoal text-center mb-3">{name}</div>}
 
           {has.zelle && has.venmo && (
-            <div className="grid grid-cols-2 gap-2 mb-3 sm:mb-5">
+            <div className="grid grid-cols-2 gap-2 mb-2.5 sm:mb-5">
               {["zelle", "venmo"].map((k) => (
                 <button
                   key={k}
                   onClick={() => { setPicked(k); setCopied(false); }}
-                  className={`py-2.5 rounded-xl border-2 font-bold text-sm ${method === k ? "pay-tab-active" : ""}`}
+                  className={`pay-tab py-2.5 rounded-xl border-2 font-bold text-sm ${method === k ? `pay-tab-active pay-tab-${k}` : ""}`}
                   style={method === k ? { borderColor: METHODS[k].color, color: METHODS[k].color, background: METHODS[k].tab } : { borderColor: "#E8E8EC", color: "#4A4A52" }}
                 >
                   {METHODS[k].label}
@@ -115,9 +115,9 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
           )}
 
           {/* phone: steps -> QR -> info.  iPad: QR on the left, steps + info on the right */}
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
+          <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
             <div className="order-2 sm:order-none sm:col-start-1 sm:row-start-1 sm:row-span-2 flex flex-col items-center justify-center">
-              <p className="text-xs font-bold tracking-wider mb-2" style={{ color: m.color }}>
+              <p className={`text-xs font-bold tracking-wider mb-2 ${image ? "hidden sm:block" : ""}`} style={{ color: m.color }}>
                 {image ? `SCAN ${m.label.toUpperCase()} QR CODE` : m.label.toUpperCase()}
               </p>
               <div className="rounded-2xl p-2.5 bg-white qr-surface border-2 border-dashed" style={{ borderColor: m.color }}>
@@ -138,7 +138,7 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
             )}
 
             {handle && (
-              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
+              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-2.5 sm:py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
                   <div className="text-base sm:text-lg font-bold text-brand-charcoal break-all">{handle}</div>

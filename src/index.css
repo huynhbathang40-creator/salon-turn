@@ -45,3 +45,12 @@ button { cursor: pointer; touch-action: manipulation; }
 .pin-in { animation: pinIn 0.22s ease-out; }
 @keyframes pinShake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
 .pin-shake { animation: pinShake 0.4s ease-in-out; }
+
+/* how-to-pay steps (light) */
+.scan-zelle { background: #faf5ff; border-color: rgba(116, 20, 202, 0.25); }
+.scan-zelle .scan-title { color: #7414ca; }
+.scan-zelle .scan-num { background: #7414ca; }
+.scan-venmo { background: #f0f8ff; border-color: rgba(0, 140, 255, 0.25); }
+.scan-venmo .scan-title { color: #0074d4; }
+.scan-venmo .scan-num { background: #008CFF; }
+.scan-text { color: #1E1E24; }

@@ -69,3 +69,17 @@ html.dark .pay-box { background-color: rgba(255, 255, 255, 0.04) !important; }
 html.dark .pay-tab-active { background-color: rgba(255, 255, 255, 0.08) !important; }
 html.dark ::-webkit-scrollbar-track { background: #121216; }
 html.dark select { background-color: #25252c; color: #edeae4; }
+
+/* how-to-pay steps (dark): tinted dark box, light text */
+html.dark .scan-zelle { background: rgba(147, 51, 234, 0.16); border-color: rgba(192, 132, 252, 0.35); }
+html.dark .scan-zelle .scan-title { color: #d8b4fe; }
+html.dark .scan-zelle .scan-num { background: #9333ea; }
+html.dark .scan-venmo { background: rgba(0, 140, 255, 0.16); border-color: rgba(96, 165, 250, 0.4); }
+html.dark .scan-venmo .scan-title { color: #93c5fd; }
+html.dark .scan-venmo .scan-num { background: #1d8fff; }
+html.dark .scan-text { color: #edeae4; }
+
+/* Zelle / Venmo switch (colors are inline for light mode) */
+html.dark .pay-tab:not(.pay-tab-active) { color: #a5a5af !important; border-color: #3c3c45 !important; }
+html.dark .pay-tab-zelle { color: #d8b4fe !important; border-color: #a855f7 !important; }
+html.dark .pay-tab-venmo { color: #93c5fd !important; border-color: #3b9bff !important; }

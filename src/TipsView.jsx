@@ -168,7 +168,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
   }
 
   // QR size: big enough to scan, small enough that everything fits on one screen (iPhone and iPad)
-  const qrSize = "w-[min(62vw,32dvh,300px)] sm:w-[min(340px,44dvh)]";
+  const qrSize = "w-[min(56vw,27svh,280px)] sm:w-[min(340px,44dvh)]";
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
@@ -195,12 +195,12 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
           </div>
 
           {hasZelle && hasVenmo && (
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="grid grid-cols-2 gap-2 mt-3 sm:mt-4">
               {["zelle", "venmo"].map((m) => (
                 <button
                   key={m}
                   onClick={() => { setMethod(m); setCopied(false); }}
-                  className={`py-2.5 rounded-xl border-2 font-bold text-sm capitalize ${method === m ? "pay-tab-active" : ""}`}
+                  className={`pay-tab py-2.5 rounded-xl border-2 font-bold text-sm capitalize ${method === m ? `pay-tab-active pay-tab-${m}` : ""}`}
                   style={method === m ? { borderColor: m === "zelle" ? "#7414ca" : "#008CFF", color: m === "zelle" ? "#7414ca" : "#008CFF", background: m === "zelle" ? "#f3e8ff" : "#e6f4ff" } : { borderColor: "#E8E8EC", color: "#4A4A52" }}
                 >
                   {m}
@@ -210,9 +210,9 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
           )}
 
           {/* phone: steps -> QR -> info.  iPad: QR on the left, steps + info on the right */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
+          <div className="mt-3 sm:mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
             <div className="order-2 sm:order-none sm:col-start-1 sm:row-start-1 sm:row-span-2 flex flex-col items-center justify-center">
-              <p className="text-xs font-bold tracking-wider mb-2" style={{ color }}>
+              <p className={`text-xs font-bold tracking-wider mb-2 ${image ? "hidden sm:block" : ""}`} style={{ color }}>
                 {image || !qr ? `SCAN ${method.toUpperCase()} QR CODE` : method.toUpperCase()}
               </p>
               <div className="rounded-2xl p-2.5 bg-white qr-surface border-2 border-dashed" style={{ borderColor: color }}>
@@ -235,7 +235,7 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
             )}
 
             {handle && (
-              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
+              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-2.5 sm:py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
                   <div className="text-base sm:text-lg font-bold text-brand-charcoal break-all">{handle}</div>
