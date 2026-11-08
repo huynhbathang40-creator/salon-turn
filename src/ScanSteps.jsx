@@ -7,7 +7,7 @@ const STEPS = {
     steps: [
       "Open your bank app.",
       "Tap Zelle®, then “Send” (or “Pay with Zelle”).",
-      "Tap the QR code icon and scan the code below.",
+      "Tap the QR code icon and scan the QR code here.",
     ],
   },
   venmo: {
@@ -17,7 +17,7 @@ const STEPS = {
     steps: [
       "Open the Venmo app.",
       "Tap “Scan” (or Pay / Request, then the QR code icon).",
-      "Scan the code below.",
+      "Scan the QR code here.",
     ],
   },
 };
@@ -25,13 +25,13 @@ const STEPS = {
 export default function ScanSteps({ method }) {
   const s = STEPS[method] || STEPS.zelle;
   return (
-    <div className="mb-3 w-full rounded-2xl p-3.5 border text-left" style={{ background: s.bg, borderColor: s.color + "40" }}>
-      <div className="text-sm font-bold mb-2.5" style={{ color: s.color }}>{s.title}</div>
+    <div className="w-full rounded-2xl p-3 sm:p-4 border text-left" style={{ background: s.bg, borderColor: s.color + "40" }}>
+      <div className="text-sm font-bold mb-2" style={{ color: s.color }}>{s.title}</div>
       <ol className="space-y-1.5">
         {s.steps.map((t, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-sm text-brand-charcoal">
-            <span className="w-6 h-6 shrink-0 rounded-full text-white text-xs font-bold flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
-            <span className="pt-0.5">{t}</span>
+          <li key={i} className="flex items-start gap-2.5 text-[13px] sm:text-[15px] leading-snug text-brand-charcoal">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 rounded-full text-white text-[11px] sm:text-xs font-bold flex items-center justify-center" style={{ background: s.color }}>{i + 1}</span>
+            <span className="pt-px">{t}</span>
           </li>
         ))}
       </ol>

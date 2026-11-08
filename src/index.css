@@ -40,6 +40,7 @@ button { cursor: pointer; touch-action: manipulation; }
 /* PIN screen */
 .pt-safe-4 { padding-top: calc(1rem + env(safe-area-inset-top)); }
 .pb-safe-6 { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); }
+.pb-safe-3 { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); }
 @keyframes pinIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .pin-in { animation: pinIn 0.22s ease-out; }
 @keyframes pinShake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }

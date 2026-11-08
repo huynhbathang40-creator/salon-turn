@@ -110,7 +110,7 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
           <p className="text-xs font-bold tracking-wider mt-5 mb-2" style={{ color: m.color }}>
             {image ? `SCAN ${m.label.toUpperCase()} QR CODE` : m.label.toUpperCase()}
           </p>
-          {image && <ScanSteps method={method} />}
+          {image && <div className="w-full mb-3"><ScanSteps method={method} /></div>}
           <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: m.color }}>
             {image ? (
               <img src={image} alt={`Salon ${m.label} QR code`} className="w-[min(70vw,280px)] aspect-square object-contain" />
