@@ -67,17 +67,24 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
     });
   }
 
+  // sized so the whole card fits on one screen (iPhone and iPad), like the tip popup
+  const qrSize = "w-[min(58vw,28dvh,300px)] sm:w-[min(340px,40dvh)]";
+
   return (
-    <div className="space-y-5 max-w-md mx-auto">
-      <div className="text-center pt-2">
-        <h2 className="font-serif text-3xl font-bold text-brand-charcoal">Pay for Your Service</h2>
-        <p className="text-sm text-brand-softSlate mt-1">Scan to pay the salon with Zelle or Venmo</p>
+    <div className="space-y-3 sm:space-y-5 max-w-md sm:max-w-3xl mx-auto">
+      <div className="text-center">
+        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-brand-charcoal">Pay for Your Service</h2>
+        <p className="text-xs sm:text-sm text-brand-softSlate mt-0.5">
+          {/* phone: the salon name goes here instead of inside the card, to save space */}
+          <span className="sm:hidden">{name ? <>Pay <b className="text-brand-charcoal">{name}</b> with Zelle or Venmo</> : "Scan to pay the salon with Zelle or Venmo"}</span>
+          <span className="hidden sm:inline">Scan to pay the salon with Zelle or Venmo</span>
+        </p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-10"><Loader2 className="animate-spin text-brand-gold" /></div>
       ) : !has.zelle && !has.venmo ? (
-        <div className="bg-white rounded-3xl border border-dashed border-brand-borderLight p-8 text-center">
+        <div className="max-w-md mx-auto bg-white rounded-3xl border border-dashed border-brand-borderLight p-8 text-center">
           <Store size={30} className="text-brand-gold/50 mx-auto mb-2" />
           <p className="text-sm text-brand-softSlate">Salon payment is not set up yet.</p>
           {isOwner ? (
@@ -89,11 +96,11 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-brand-borderLight shadow-sm p-6 flex flex-col items-center">
-          {name && <div className="font-bold text-xl text-brand-charcoal text-center">{name}</div>}
+        <div className="bg-white rounded-3xl border border-brand-borderLight shadow-sm p-4 sm:p-7">
+          {name && <div className="hidden sm:block font-bold text-2xl text-brand-charcoal text-center mb-3">{name}</div>}
 
           {has.zelle && has.venmo && (
-            <div className="grid grid-cols-2 gap-2 mt-4 w-full">
+            <div className="grid grid-cols-2 gap-2 mb-3 sm:mb-5">
               {["zelle", "venmo"].map((k) => (
                 <button
                   key={k}
@@ -107,34 +114,49 @@ export default function PayView({ pay, isOwner, onSaveInfo, simple = false }) {
             </div>
           )}
 
-          <p className="text-xs font-bold tracking-wider mt-5 mb-2" style={{ color: m.color }}>
-            {image ? `SCAN ${m.label.toUpperCase()} QR CODE` : m.label.toUpperCase()}
-          </p>
-          {image && <div className="w-full mb-3"><ScanSteps method={method} /></div>}
-          <div className="rounded-2xl p-3 bg-white qr-surface border-2 border-dashed" style={{ borderColor: m.color }}>
-            {image ? (
-              <img src={image} alt={`Salon ${m.label} QR code`} className="w-[min(70vw,280px)] aspect-square object-contain" />
-            ) : (
-              <div className="w-[min(70vw,280px)] aspect-[2/1] flex flex-col items-center justify-center text-brand-softSlate text-xs gap-2">
-                <QrCode size={28} className="opacity-30" /> No QR code, use the info below
+          {/* phone: steps -> QR -> info.  iPad: QR on the left, steps + info on the right */}
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-3">
+            <div className="order-2 sm:order-none sm:col-start-1 sm:row-start-1 sm:row-span-2 flex flex-col items-center justify-center">
+              <p className="text-xs font-bold tracking-wider mb-2" style={{ color: m.color }}>
+                {image ? `SCAN ${m.label.toUpperCase()} QR CODE` : m.label.toUpperCase()}
+              </p>
+              <div className="rounded-2xl p-2.5 bg-white qr-surface border-2 border-dashed" style={{ borderColor: m.color }}>
+                {image ? (
+                  <img src={image} alt={`Salon ${m.label} QR code`} className={`${qrSize} aspect-square object-contain`} />
+                ) : (
+                  <div className={`${qrSize} aspect-[2/1] flex flex-col items-center justify-center text-brand-softSlate text-xs gap-2`}>
+                    <QrCode size={28} className="opacity-30" /> No QR code, use the info below
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {image && (
+              <div className="order-1 sm:order-none sm:col-start-2 sm:row-start-1 sm:self-end">
+                <ScanSteps method={method} />
+              </div>
+            )}
+
+            {handle && (
+              <div className="order-3 sm:order-none sm:col-start-2 sm:row-start-2 sm:self-start bg-brand-warmIvory rounded-2xl px-4 py-3 border border-dashed border-brand-borderLight flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
+                  <div className="text-base sm:text-lg font-bold text-brand-charcoal break-all">{handle}</div>
+                </div>
+                <button onClick={copy} className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
+                  {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
+                </button>
               </div>
             )}
           </div>
 
-          {handle && (
-            <div className="mt-5 w-full bg-brand-warmIvory rounded-2xl p-4 text-center border border-dashed border-brand-borderLight">
-              <div className="text-[11px] uppercase tracking-wider text-brand-softSlate">{method === "zelle" ? "Zelle phone / email" : "Venmo username"}</div>
-              <div className="text-lg font-bold text-brand-charcoal break-all mt-0.5">{handle}</div>
-              <button onClick={copy} className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-brand-charcoal text-white text-sm font-bold">
-                {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? "Copied" : "Copy"}
+          {!image && <p className="text-[11px] text-brand-softSlate text-center mt-3">{m.hint}</p>}
+          {isOwner && (
+            <div className="text-center mt-3">
+              <button onClick={() => setEditing(true)} className="text-xs text-brand-softSlate underline inline-flex items-center gap-1">
+                <Pencil size={12} /> Edit salon Zelle / Venmo
               </button>
             </div>
-          )}
-          <p className="text-[11px] text-brand-softSlate text-center mt-4">{m.hint}</p>
-          {isOwner && (
-            <button onClick={() => setEditing(true)} className="mt-3 text-xs text-brand-softSlate underline inline-flex items-center gap-1">
-              <Pencil size={12} /> Edit salon Zelle / Venmo
-            </button>
           )}
         </div>
       )}
