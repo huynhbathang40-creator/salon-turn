@@ -43,7 +43,6 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       )}
 
       {canEdit && tipChecks && onTipStatus && <TipCheckPanel tips={tipChecks} onStatus={onTipStatus} />}
-      {canEdit && tipHistory && <TipHistory tips={tipHistory} />}
 
       {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows.filter((r) => (r.name_key || tipKey(r.name)) !== SALON_PAY_KEY)} />}
 
@@ -96,6 +95,9 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       {rows && visible.length === 0 && (
         <p className="text-center text-sm text-brand-softSlate py-6">{q ? `No technician named "${query}".` : "No technicians yet."}</p>
       )}
+
+      {/* owner only: tip history at the very bottom */}
+      {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} /></div>}
 
       {selected && (
         <TipModal
