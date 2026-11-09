@@ -121,6 +121,17 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState("idle"); // idle | saving | done | error
 
+  // auto-close: the popup goes back to the tech list by itself after 45 s (a tap inside restarts the count)
+  const AUTO_CLOSE = 45;
+  const [left, setLeft] = useState(AUTO_CLOSE);
+  useEffect(() => {
+    const t = setInterval(() => setLeft((n) => n - 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (left <= 0) onClose();
+  }, [left, onClose]);
+
   async function confirmSent() {
     setSent("saving");
     try {
@@ -175,14 +186,22 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
       <div
         className="bg-white w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl max-h-[96dvh] flex flex-col relative toast-in overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={() => setLeft(AUTO_CLOSE)}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
-          <X size={18} />
-        </button>
+        {/* time left before it closes by itself */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-brand-borderLight/60 z-10" aria-hidden="true">
+          <div className="h-full bg-brand-gold transition-[width] duration-1000 ease-linear" style={{ width: `${(Math.max(left, 0) / AUTO_CLOSE) * 100}%` }} />
+        </div>
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <span className="text-[11px] text-brand-softSlate tabular-nums" aria-live="off">Closes in {Math.max(left, 0)}s</span>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-5 pb-3 sm:px-8 sm:pt-7">
           {/* name row */}
-          <div className="flex items-center gap-3 pr-12">
+          <div className="flex items-center gap-3 pr-36">
             <Avatar name={name} size={52} ring="border-brand-gold" />
             <div className="min-w-0">
               <h3 className="font-bold text-xl sm:text-2xl text-brand-charcoal truncate">{name}</h3>
