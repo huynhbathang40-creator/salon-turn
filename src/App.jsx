@@ -141,6 +141,10 @@ export default function App() {
     }
   };
   const setReviewHandled = (id, handled) => setData((p) => markHandled(p, id, handled));
+  const deleteReview = (id) => {
+    if (!canEdit || !isOwner) return;
+    setData((p) => ({ ...p, reviews: (p.reviews || []).filter((r) => r.id !== id) }));
+  };
   const resetReviews = () => {
     if (!canEdit || !isOwner) return;
     setData((p) => ({ ...p, reviews: [] }));
@@ -520,7 +524,7 @@ export default function App() {
             ownerExtra={
               canEdit && isOwner ? (
                 <div className="pt-4">
-                  <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} onReset={resetReviews} />
+                  <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} onReset={resetReviews} onDelete={deleteReview} />
                 </div>
               ) : null
             }

@@ -299,7 +299,7 @@ function GoogleG() {
 
 /* ---------- owner only: reviews, ratings per tech, low-rating alerts, settings ---------- */
 
-export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSettings, onReset }) {
+export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSettings, onReset, onDelete }) {
   const [view, setView] = useState("tech"); // tech | time
   const [pickedTech, setPickedTech] = useState(null); // tap a tech chip -> only that tech's reviews
   const [confirmReset, setConfirmReset] = useState(false);
@@ -382,7 +382,10 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
                   <div className="text-brand-charcoal mt-0.5">{[r.tags?.join(", "), r.comment && `“${r.comment}”`].filter(Boolean).join(" · ")}</div>
                 )}
               </div>
-              <button onClick={() => onHandled(r.id, true)} className="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">Handled</button>
+              <div className="shrink-0 flex items-center gap-1">
+                <button onClick={() => onHandled(r.id, true)} className="px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">Handled</button>
+                {onDelete && <DeleteReview onDelete={() => onDelete(r.id)} />}
+              </div>
             </div>
           ))}
           </div>
@@ -390,7 +393,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
       )}
 
       {sorted.length === 0 ? (
-        <p className="text-sm text-brand-softSlate">No reviews yet. Customers rate their technician in customer mode before tipping.</p>
+        <p className="text-sm text-brand-softSlate">No reviews yet. Customers rate their technician in customer mode.</p>
       ) : (
         <>
           {/* Google-style summary: average on the left, 5→1 star bars on the right; technicians next to it on iPad */}
@@ -420,7 +423,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           </div>
 
           {pickedTech ? (
-            <TechReviews name={pickedTech} list={sorted.filter((r) => r.techName === pickedTech)} onHandled={onHandled} onClose={() => setPickedTech(null)} />
+            <TechReviews name={pickedTech} list={sorted.filter((r) => r.techName === pickedTech)} onHandled={onHandled} onDelete={onDelete} onClose={() => setPickedTech(null)} />
           ) : (<>
 
           <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -444,7 +447,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           </div>
 
           {view === "time" ? (
-            <ReviewRows list={dayList} showName cards onHandled={onHandled} />
+            <ReviewRows list={dayList} showName cards onHandled={onHandled} onDelete={onDelete} />
           ) : (
             <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-start">
               {groupByTech(dayList).map((g) => (
@@ -455,7 +458,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
                       <Star size={12} className="text-amber-400 fill-amber-400" /> <b className="text-brand-charcoal">{g.avg.toFixed(1)}</b> · {g.list.length} review{g.list.length > 1 ? "s" : ""}
                     </span>
                   </div>
-                  <div className="px-2"><ReviewRows list={g.list} onHandled={onHandled} /></div>
+                  <div className="px-2"><ReviewRows list={g.list} onHandled={onHandled} onDelete={onDelete} /></div>
                 </div>
               ))}
             </div>
@@ -469,7 +472,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
 }
 
 // one technician's reviews, newest first, with date + time
-function TechReviews({ name, list, onHandled, onClose }) {
+function TechReviews({ name, list, onHandled, onDelete, onClose }) {
   const avg = list.reduce((a, r) => a + r.stars, 0) / (list.length || 1);
   const counts = [5, 4, 3, 2, 1].map((n) => [n, list.filter((r) => r.stars === n).length]);
   const tagCount = {};
@@ -495,7 +498,7 @@ function TechReviews({ name, list, onHandled, onClose }) {
         </div>
       )}
       </div>
-      <div className="px-2 pt-1 lg:pt-2 lg:pr-3"><ReviewRows list={list} showDate onHandled={onHandled} /></div>
+      <div className="px-2 pt-1 lg:pt-2 lg:pr-3"><ReviewRows list={list} showDate onHandled={onHandled} onDelete={onDelete} /></div>
       </div>
     </div>
   );
@@ -564,7 +567,27 @@ function groupByTech(list) {
 }
 
 // cards = on iPad, two columns of small cards: newest at the top of the left column, then down, then the right column
-function ReviewRows({ list, showName = false, showDate = false, cards = false, onHandled }) {
+// delete one review (e.g. a test): tap the bin, then confirm
+function DeleteReview({ onDelete }) {
+  const [ask, setAsk] = useState(false);
+  useEffect(() => {
+    if (!ask) return;
+    const t = setTimeout(() => setAsk(false), 5000);
+    return () => clearTimeout(t);
+  }, [ask]);
+  return ask ? (
+    <span className="flex items-center gap-1">
+      <button onClick={() => { setAsk(false); onDelete(); }} className="px-2 py-1 rounded-md bg-rose-600 text-white text-[11px] font-bold">Delete</button>
+      <button onClick={() => setAsk(false)} className="px-2 py-1 rounded-md border border-brand-borderLight text-brand-softSlate text-[11px] font-bold">Cancel</button>
+    </span>
+  ) : (
+    <button onClick={() => setAsk(true)} className="w-7 h-7 rounded-md flex items-center justify-center text-brand-softSlate/70 hover:text-rose-600 active:bg-rose-50" aria-label="Delete this review">
+      <Trash2 size={14} />
+    </button>
+  );
+}
+
+function ReviewRows({ list, showName = false, showDate = false, cards = false, onHandled, onDelete }) {
   return (
     <ul className={cards ? "divide-y divide-brand-borderLight lg:divide-y-0 lg:columns-2 lg:gap-2" : "divide-y divide-brand-borderLight"}>
       {list.map((r) => (
@@ -574,13 +597,16 @@ function ReviewRows({ list, showName = false, showDate = false, cards = false, o
             <Stars value={r.stars} />
             <span className="text-[11px] text-brand-softSlate tabular-nums">{showDate ? `${r.date} · ` : ""}{time(r.at)}</span>
             {r.source === "phone" && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">Phone</span>}
-            {r.stars <= LOW && (
-              r.handled ? (
-                <button onClick={() => onHandled(r.id, false)} className="ml-auto text-[11px] text-emerald-700 font-bold">✓ Handled</button>
-              ) : (
-                <span className="ml-auto text-[11px] text-rose-700 font-bold">Needs attention</span>
-              )
-            )}
+            <span className="ml-auto flex items-center gap-2">
+              {r.stars <= LOW && (
+                r.handled ? (
+                  <button onClick={() => onHandled(r.id, false)} className="text-[11px] text-emerald-700 font-bold">✓ Handled</button>
+                ) : (
+                  <span className="text-[11px] text-rose-700 font-bold">Needs attention</span>
+                )
+              )}
+              {onDelete && <DeleteReview onDelete={() => onDelete(r.id)} />}
+            </span>
           </div>
           {(r.tags?.length > 0 || r.comment) && (
             <div className="text-brand-charcoal mt-0.5">{[r.tags?.join(", "), r.comment && `“${r.comment}”`].filter(Boolean).join(" · ")}</div>
