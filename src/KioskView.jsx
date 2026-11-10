@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Lock, X, Delete, Loader2, ShieldCheck, Store, Heart, Wallet, ChevronLeft, Sparkles, Star, Users, QrCode } from "lucide-react";
+import { Lock, X, Delete, Loader2, ShieldCheck, Store, Heart, Wallet, ChevronLeft, Sparkles, Star, Users, QrCode, ChevronRight } from "lucide-react";
 import TipsView from "./TipsView.jsx";
 import PayView from "./PayView.jsx";
 import { Key } from "./ManagerButton.jsx";
@@ -101,15 +101,40 @@ export default function KioskView({ technicians, salonPay, onTipSent, review }) 
 
 /* ---------- welcome screen (waiting for the next customer) ---------- */
 
+// the salon emblem (background removed, redrawn sharp): a deeper gold for light mode, a brighter gold for dark mode
+function SalonLogo() {
+  const [ok, setOk] = useState(true);
+  if (!ok) return <Sparkles size={30} className="text-brand-gold mb-3" strokeWidth={1.5} />;
+  const base = import.meta.env.BASE_URL;
+  const cls = "h-24 sm:h-36 w-auto object-contain mb-3 sm:mb-4";
+  return (
+    <>
+      <img src={`${base}salon-logo.png`} alt="" onError={() => setOk(false)} className={`logo-light ${cls}`} />
+      <img src={`${base}salon-logo-dark.png`} alt="" className={`logo-dark ${cls}`} />
+    </>
+  );
+}
+
+// the salon name in the logo's style: first word big serif, the rest small and widely spaced
+function SalonName({ name }) {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  return (
+    <div className="salon-name mb-5 sm:mb-6 text-center">
+      <div className="font-serif font-bold uppercase text-4xl sm:text-6xl tracking-[0.08em] leading-none">{first}</div>
+      {rest.length > 0 && <div className="mt-2 sm:mt-3 text-base sm:text-2xl font-semibold uppercase tracking-[0.45em] pl-[0.45em]">{rest.join(" ")}</div>}
+    </div>
+  );
+}
+
 function Welcome({ name, hasReview, onStart, onPay }) {
   const steps = hasReview
     ? [[Users, "Choose your technician"], [Star, "Rate your service"], [Heart, "Leave a tip"]]
     : [[Users, "Choose your technician"], [QrCode, "Scan the QR code"], [Heart, "Leave a tip"]];
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10 text-center welcome-in">
-      {name && <div className="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-brand-gold mb-3">{name}</div>}
-      <Sparkles size={30} className="text-brand-gold mb-3" strokeWidth={1.5} />
-      <h1 className="font-serif font-bold text-4xl sm:text-6xl text-brand-charcoal leading-tight">Thank you<br className="sm:hidden" /> for visiting</h1>
+      <SalonLogo />
+      {name && <SalonName name={name} />}
+      <h1 className="font-serif font-bold text-3xl sm:text-5xl text-brand-charcoal leading-tight">Thank you for visiting</h1>
       <p className="text-base sm:text-xl text-brand-softSlate mt-3 max-w-lg">
         {hasReview ? "We'd love to hear about your visit. Rate your technician and leave a tip in a few taps." : "Thank your technician with a tip in a few taps."}
       </p>
@@ -126,11 +151,10 @@ function Welcome({ name, hasReview, onStart, onPay }) {
         ))}
       </div>
 
-      <button
-        onClick={onStart}
-        className="welcome-cta mt-10 w-full max-w-md py-5 rounded-2xl bg-brand-charcoal text-white text-lg sm:text-xl font-bold flex items-center justify-center gap-2.5 shadow-lg active:scale-[0.98] transition"
-      >
-        {hasReview ? <><Star size={20} /> Rate &amp; Tip your technician</> : <><Heart size={20} /> Tip your technician</>}
+      <button onClick={onStart} className="welcome-cta mt-10 w-full max-w-md py-5 sm:py-6 rounded-2xl text-lg sm:text-2xl font-extrabold flex items-center justify-center gap-2.5">
+        <span className="welcome-cta-shine" aria-hidden="true" />
+        {hasReview ? <><Star size={22} className="fill-current" /> Rate &amp; Tip your technician</> : <><Heart size={22} className="fill-current" /> Tip your technician</>}
+        <ChevronRight size={22} className="welcome-cta-arrow" />
       </button>
       <button onClick={onPay} className="mt-3 w-full max-w-md py-4 rounded-2xl bg-white border border-brand-borderLight text-brand-charcoal text-base font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition">
         <Wallet size={18} /> Pay for your service

@@ -58,6 +58,32 @@ button { cursor: pointer; touch-action: manipulation; }
 /* customer mode welcome screen */
 @keyframes welcome-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 .welcome-in { animation: welcome-in 0.5s ease-out both; }
-@keyframes welcome-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.45); } 50% { box-shadow: 0 0 0 12px rgba(197, 160, 89, 0); } }
-.welcome-cta { animation: welcome-pulse 2.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .welcome-in, .welcome-cta { animation: none; } }
+@keyframes welcome-pulse { 0%, 100% { box-shadow: 0 10px 30px -8px rgba(197, 160, 89, 0.75), 0 0 0 0 rgba(197, 160, 89, 0.6); } 50% { box-shadow: 0 10px 30px -8px rgba(197, 160, 89, 0.75), 0 0 0 16px rgba(197, 160, 89, 0); } }
+/* the main button: solid gold with dark text (same in light and dark mode), glowing pulse + shine sweep */
+.welcome-cta {
+  position: relative; overflow: hidden; isolation: isolate;
+  background: #C5A059; color: #1E1E24;
+  border: 2px solid #E6CB8E;
+  box-shadow: 0 10px 30px -8px rgba(197, 160, 89, 0.75);
+  animation: welcome-pulse 2s ease-in-out infinite, welcome-breathe 2s ease-in-out infinite;
+  transition: transform 0.15s;
+}
+.welcome-cta:active { transform: scale(0.97); }
+.welcome-cta-shine {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: welcome-shine 3s ease-in-out infinite;
+}
+.welcome-cta-arrow { animation: welcome-nudge 1.2s ease-in-out infinite; }
+@keyframes welcome-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+@keyframes welcome-shine { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+@keyframes welcome-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .welcome-in, .welcome-cta, .welcome-cta-shine, .welcome-cta-arrow { animation: none; } }
+
+/* salon logo + name: deep gold on light, bright gold on dark */
+.logo-dark { display: none; }
+html.dark .logo-light { display: none; }
+html.dark .logo-dark { display: block; }
+.salon-name { color: #9a6f28; }
+html.dark .salon-name { color: #dcbc78; }

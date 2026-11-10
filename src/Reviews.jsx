@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Star, X, Check, AlertTriangle, Bell, Loader2, Send, Link2, MessageSquare, Heart } from "lucide-react";
+import {
+  Star, X, Check, AlertTriangle, Bell, Loader2, Send, Link2, MessageSquare, Heart,
+  Smile, Feather, BadgeCheck, MessageCircle, Ear, Clock, Sparkles, Target, Gem, Droplet, Palette, Leaf,
+  BadgeDollarSign, Armchair, Repeat, Timer, Hand, Frown, EarOff, Smartphone, XCircle, Shapes, Bandage,
+  Scissors, Hourglass, Trash2, DollarSign, Volume2, Receipt, UserRound, Paintbrush, Building2,
+} from "lucide-react";
 import Avatar from "./Avatar.jsx";
 
 // Customer reviews ("Rate & Tip").
@@ -12,15 +17,16 @@ export const LOW = 3; // this many stars or fewer = low rating (alert)
 const AUTO_CLOSE = 90;
 
 // quick tags, grouped so they are easy to scan and tap
+// [group title, group icon, [[tag, icon], ...]]
 export const GOOD_GROUPS = [
-  ["Your technician", ["Friendly", "Gentle", "Professional", "Great advice"]],
-  ["Your nails", ["Beautiful work", "Clean & neat", "Exactly what I wanted", "Perfect shape"]],
-  ["Your visit", ["On time", "Relaxing", "Clean salon", "Great value"]],
+  ["Your technician", UserRound, [["Friendly", Smile], ["Gentle", Feather], ["Professional", BadgeCheck], ["Great advice", MessageCircle], ["Attentive", Ear], ["Took their time", Clock]]],
+  ["Your nails", Paintbrush, [["Beautiful work", Sparkles], ["Exactly what I wanted", Target], ["Perfect shape", Gem], ["Smooth polish", Droplet], ["Creative design", Palette], ["Clean & neat", Check]]],
+  ["Your visit", Building2, [["On time", Clock], ["Relaxing", Leaf], ["Clean salon", Sparkles], ["Comfortable", Armchair], ["Great value", BadgeDollarSign], ["Will come back", Repeat]]],
 ];
 export const BAD_GROUPS = [
-  ["Your technician", ["Too rushed", "Not gentle", "Not friendly", "Didn't listen"]],
-  ["Your nails", ["Not what I wanted", "Polish not neat", "Uneven shape", "Got hurt"]],
-  ["Your visit", ["Waited too long", "Not clean", "Too pricey", "Too noisy"]],
+  ["Your technician", UserRound, [["Too rushed", Timer], ["Not gentle", Hand], ["Not friendly", Frown], ["Didn't listen", EarOff], ["On the phone", Smartphone], ["Not careful", AlertTriangle]]],
+  ["Your nails", Paintbrush, [["Not what I wanted", XCircle], ["Polish not neat", Droplet], ["Uneven shape", Shapes], ["Got hurt", Bandage], ["Messy cuticles", Scissors], ["Wrong color", Palette]]],
+  ["Your visit", Building2, [["Waited too long", Hourglass], ["Not clean", Trash2], ["Too pricey", DollarSign], ["Too noisy", Volume2], ["Uncomfortable", Armchair], ["Unclear prices", Receipt]]],
 ];
 const STAR_WORDS = ["", "Poor", "Fair", "Okay", "Good", "Excellent"];
 
@@ -93,14 +99,14 @@ function useAutoClose(onClose, seconds = AUTO_CLOSE) {
   return [left, () => setLeft(seconds)];
 }
 
-function Shell({ children, onClose, left, total, onTouch, labelledBy }) {
+function Shell({ children, onClose, left, total, onTouch, labelledBy, wide = false }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[96dvh] flex flex-col relative toast-in overflow-hidden"
+        className={`bg-white w-full sm:max-w-2xl ${wide ? "lg:max-w-5xl" : ""} rounded-t-3xl sm:rounded-3xl max-h-[96dvh] flex flex-col relative toast-in overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={onTouch}
       >
@@ -136,7 +142,7 @@ export function ReviewModal({ tech, hasTip, onDone, onClose }) {
   const toggle = (t) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
 
   return (
-    <Shell onClose={onClose} left={left} total={AUTO_CLOSE} onTouch={touch} labelledBy="review-title">
+    <Shell onClose={onClose} left={left} total={AUTO_CLOSE} onTouch={touch} labelledBy="review-title" wide>
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-5 pb-3 sm:px-8 sm:pt-7">
         <div className="flex items-center gap-3 pr-36">
           <Avatar name={tech.name} size={52} ring="border-brand-gold" />
@@ -169,23 +175,26 @@ export function ReviewModal({ tech, hasTip, onDone, onClose }) {
             <p className="text-center text-sm font-bold text-brand-charcoal mt-4">
               {stars <= LOW ? "What could be better?" : "What did you love?"} <span className="font-normal text-brand-softSlate">(tap any)</span>
             </p>
-            <div className="mt-2 space-y-3">
-              {groups.map(([group, list]) => (
-                <div key={group}>
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-brand-softSlate mb-1.5">{group}</div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {list.map((t) => {
+            <div className="mt-2 space-y-2.5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3">
+              {groups.map(([group, GroupIcon, list]) => (
+                <div key={group} className="rounded-2xl bg-brand-warmIvory/60 border border-brand-borderLight p-2.5 sm:p-3">
+                  <div className="text-xs font-bold uppercase tracking-wider text-brand-charcoal mb-2 flex items-center gap-1.5">
+                    <GroupIcon size={14} className="text-brand-gold" /> {group}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+                    {list.map(([t, Icon]) => {
                       const on = tags.includes(t);
                       return (
                         <button
                           key={t}
                           onClick={() => toggle(t)}
                           aria-pressed={on}
-                          className={`min-h-[44px] px-2.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold border transition flex items-center justify-center gap-1.5 text-center leading-tight active:scale-[0.97] ${
+                          className={`min-h-[46px] px-2.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold border transition flex items-center gap-2 text-left leading-tight active:scale-[0.97] ${
                             on ? "review-tag-on bg-brand-charcoal text-white border-brand-charcoal" : "bg-white text-brand-charcoal border-brand-borderLight"
                           }`}
                         >
-                          {on && <Check size={14} className="shrink-0" />} {t}
+                          {on ? <Check size={16} className="shrink-0" /> : <Icon size={16} className="shrink-0 text-brand-gold" />}
+                          <span>{t}</span>
                         </button>
                       );
                     })}
