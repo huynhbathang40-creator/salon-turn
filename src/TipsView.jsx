@@ -76,7 +76,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
             <button
               key={tech.id}
               onClick={() => (review ? setReviewing({ tech, tip }) : tip ? setSelected({ tech, tip }) : onEditTech?.(tech.name))}
-              className={`relative bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${tip || review ? "border-brand-borderLight" : "border-dashed border-amber-300"} ${review && !servedAt ? "opacity-70" : ""} ${review ? "pt-9" : ""}`}
+              className={`relative bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${review && servedAt ? "border-2 border-brand-gold shadow-md" : tip || review ? "border-brand-borderLight" : "border-dashed border-amber-300"} ${review ? "pt-9" : ""}`}
             >
               {review && servedAt && (
                 <span className="absolute top-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
