@@ -318,7 +318,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
   const ranking = Object.values(perTech).sort((a, b) => b.sum / b.n - a.sum / a.n || b.n - a.n);
 
   return (
-    <div className="max-w-xl lg:max-w-6xl mx-auto rounded-2xl border border-brand-borderGold bg-white p-4 lg:p-5 space-y-3">
+    <div className="max-w-xl mx-auto lg:max-w-none lg:mx-0 w-full rounded-2xl border border-brand-borderGold bg-white p-4 lg:p-5 space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="font-bold text-brand-charcoal flex items-center gap-2">
           <MessageSquare size={17} className="text-brand-gold" /> Customer reviews
@@ -385,6 +385,11 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
         <p className="text-sm text-brand-softSlate">No reviews yet. Customers rate their technician in customer mode before tipping.</p>
       ) : (
         <>
+          {/* Google-style summary: average on the left, 5→1 star bars on the right; technicians next to it on iPad */}
+          <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:gap-6 lg:items-start">
+          <RatingSummary list={sorted} />
+          <div className="space-y-2">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-softSlate">Technicians</div>
           <div className="flex flex-wrap gap-1.5">
             {ranking.map((g) => {
               const on = pickedTech === g.name;
@@ -402,7 +407,9 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
               );
             })}
           </div>
-          {!pickedTech && <p className="text-[11px] text-brand-softSlate -mt-1">Tap a technician to see only their reviews.</p>}
+          {!pickedTech && <p className="text-[11px] text-brand-softSlate ">Tap a technician to see only their reviews.</p>}
+          </div>
+          </div>
 
           {pickedTech ? (
             <TechReviews name={pickedTech} list={sorted.filter((r) => r.techName === pickedTech)} onHandled={onHandled} onClose={() => setPickedTech(null)} />
@@ -471,17 +478,7 @@ function TechReviews({ name, list, onHandled, onClose }) {
       </div>
       <div className="lg:grid lg:grid-cols-[300px_1fr] lg:gap-4">
       <div className="lg:border-r lg:border-brand-borderLight lg:pb-3">
-      <div className="px-3 pt-2.5 space-y-1">
-        {counts.map(([n, c]) => (
-          <div key={n} className="flex items-center gap-2 text-xs">
-            <span className="w-6 text-brand-softSlate tabular-nums">{n}★</span>
-            <span className="flex-1 h-2 rounded-full bg-brand-borderLight/60 overflow-hidden">
-              <span className="block h-full bg-amber-400 rounded-full" style={{ width: `${list.length ? (c / list.length) * 100 : 0}%` }} />
-            </span>
-            <span className="w-5 text-right tabular-nums text-brand-softSlate">{c}</span>
-          </div>
-        ))}
-      </div>
+      <div className="px-3 pt-3"><RatingSummary list={list} /></div>
       {topTags.length > 0 && (
         <div className="px-3 pt-2.5 flex flex-wrap gap-1.5">
           {topTags.map(([t, c]) => (
@@ -491,6 +488,45 @@ function TechReviews({ name, list, onHandled, onClose }) {
       )}
       </div>
       <div className="px-2 pt-1 lg:pt-2 lg:pr-3"><ReviewRows list={list} showDate onHandled={onHandled} /></div>
+      </div>
+    </div>
+  );
+}
+
+// like the rating box on Google: big average + stars + count, and a bar for each star level
+function RatingSummary({ list }) {
+  const n = list.length;
+  const avg = n ? list.reduce((a, r) => a + r.stars, 0) / n : 0;
+  const counts = [5, 4, 3, 2, 1].map((s) => [s, list.filter((r) => r.stars === s).length]);
+  return (
+    <div className="rounded-xl border border-brand-borderLight bg-brand-warmIvory/50 p-3 sm:p-4 flex items-center gap-4 sm:gap-6">
+      <div className="text-center shrink-0 w-24 sm:w-28">
+        <div className="font-serif text-5xl font-bold text-brand-charcoal leading-none tabular-nums">{avg.toFixed(1)}</div>
+        <div className="flex justify-center gap-0.5 mt-2">
+          {[1, 2, 3, 4, 5].map((s) => {
+            const fill = Math.max(0, Math.min(1, avg - (s - 1)));
+            return (
+              <span key={s} className="relative inline-block w-4 h-4">
+                <Star size={16} className="absolute inset-0 text-brand-borderLight" />
+                <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                  <Star size={16} className="text-amber-400 fill-amber-400" />
+                </span>
+              </span>
+            );
+          })}
+        </div>
+        <div className="text-xs text-brand-softSlate mt-1.5">{n} review{n === 1 ? "" : "s"}</div>
+      </div>
+      <div className="flex-1 min-w-0 space-y-1.5">
+        {counts.map(([s, c]) => (
+          <div key={s} className="flex items-center gap-2 text-xs">
+            <span className="w-3 text-right font-semibold text-brand-charcoal tabular-nums">{s}</span>
+            <span className="flex-1 h-2.5 rounded-full bg-brand-borderLight/70 overflow-hidden">
+              <span className="block h-full rounded-full bg-amber-400" style={{ width: `${n ? (c / n) * 100 : 0}%` }} />
+            </span>
+            <span className="w-6 text-right tabular-nums text-brand-softSlate">{c}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

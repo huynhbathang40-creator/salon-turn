@@ -120,7 +120,7 @@ export function TipHistory({ tips, onReset }) {
   const shown = openDay ?? days[0]?.[0];
 
   return (
-    <div className="max-w-xl mx-auto rounded-2xl border border-brand-borderGold bg-white p-4 space-y-3">
+    <div className="max-w-xl mx-auto lg:max-w-none lg:mx-0 w-full rounded-2xl border border-brand-borderGold bg-white p-4 lg:p-5 space-y-3">
       <div className="flex items-center justify-between">
         <span className="font-bold text-brand-charcoal flex items-center gap-2">
           <Clock size={17} className="text-brand-gold" /> Tip history
@@ -186,7 +186,7 @@ export function TipHistory({ tips, onReset }) {
           {view === "time" ? (
             <TipRows list={byDay.get(shown) || []} showName />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-start">
               {groupByTech(byDay.get(shown) || []).map((g) => (
                 <div key={g.name} className="rounded-xl border border-brand-borderLight overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-brand-warmIvory">
