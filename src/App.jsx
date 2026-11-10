@@ -122,6 +122,11 @@ export default function App() {
     if (entry.stars <= LOW) sendLowAlert(data.reviewSettings?.ntfyTopic, entry);
   };
   const setReviewHandled = (id, handled) => setData((p) => markHandled(p, id, handled));
+  const resetReviews = () => {
+    if (!canEdit || !isOwner) return;
+    setData((p) => ({ ...p, reviews: [] }));
+    notify("Reviews reset.");
+  };
   async function saveReviewSettings(settings) {
     if (!canEdit || !isOwner) throw new Error("Owner mode is needed to change this.");
     await store.update((p) => ({ ...p, reviewSettings: { ...(p.reviewSettings || {}), ...settings } }));
@@ -469,7 +474,7 @@ export default function App() {
             ownerExtra={
               canEdit && isOwner ? (
                 <div className="pt-4">
-                  <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} />
+                  <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} onReset={resetReviews} />
                 </div>
               ) : null
             }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Star, X, Check, AlertTriangle, Bell, Loader2, Send, Link2, MessageSquare, Heart,
+  Star, X, Check, AlertTriangle, RotateCcw, Bell, Loader2, Send, Link2, MessageSquare, Heart,
   Camera, Smile, Feather, BadgeCheck, MessageCircle, Ear, Clock, Sparkles, Target, Gem, Droplet, Palette, Leaf,
   BadgeDollarSign, Armchair, Repeat, Timer, Hand, Frown, EarOff, Smartphone, XCircle, Shapes, Bandage,
   Scissors, Hourglass, Trash2, DollarSign, Volume2, Receipt, UserRound, Paintbrush, Building2,
@@ -292,8 +292,10 @@ function GoogleG() {
 
 /* ---------- owner only: reviews, ratings per tech, low-rating alerts, settings ---------- */
 
-export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSettings }) {
+export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSettings, onReset }) {
   const [view, setView] = useState("tech"); // tech | time
+  const [pickedTech, setPickedTech] = useState(null); // tap a tech chip -> only that tech's reviews
+  const [confirmReset, setConfirmReset] = useState(false);
   const [openDay, setOpenDay] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -322,8 +324,24 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
         <span className="flex items-center gap-1.5">
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-lightGold text-brand-gold border border-brand-borderGold">Owner</span>
           <button onClick={() => setShowSettings((v) => !v)} className="text-xs text-brand-softSlate underline">Settings</button>
+          {reviews.length > 0 && onReset && (
+            <button onClick={() => setConfirmReset(true)} className="text-xs font-bold px-2.5 py-1 rounded-full border border-rose-200 text-rose-700 inline-flex items-center gap-1">
+              <RotateCcw size={12} /> Reset
+            </button>
+          )}
         </span>
       </div>
+
+      {confirmReset && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm">
+          <p className="font-bold text-rose-800">Delete all {reviews.length} reviews and start fresh?</p>
+          <p className="text-rose-800/80 text-xs mt-0.5">Ratings, comments and averages are cleared on every device. This can't be undone.</p>
+          <div className="flex gap-2 mt-2.5">
+            <button onClick={() => { onReset(); setConfirmReset(false); setPickedTech(null); setOpenDay(null); }} className="px-3.5 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold">Yes, reset reviews</button>
+            <button onClick={() => setConfirmReset(false)} className="px-3.5 py-2 rounded-lg border border-brand-borderLight bg-white text-xs font-bold">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {showSettings && <ReviewSettings settings={settings} onSave={onSaveSettings} />}
 
@@ -354,12 +372,27 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
       ) : (
         <>
           <div className="flex flex-wrap gap-1.5">
-            {ranking.map((g) => (
-              <span key={g.name} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-warmIvory border border-brand-borderLight text-brand-charcoal inline-flex items-center gap-1">
-                {g.name} <Star size={11} className="text-amber-400 fill-amber-400" /> {(g.sum / g.n).toFixed(1)} <span className="text-brand-softSlate">({g.n})</span>
-              </span>
-            ))}
+            {ranking.map((g) => {
+              const on = pickedTech === g.name;
+              return (
+                <button
+                  key={g.name}
+                  onClick={() => setPickedTech(on ? null : g.name)}
+                  aria-pressed={on}
+                  className={`text-sm font-semibold px-3 py-1.5 rounded-full border inline-flex items-center gap-1 active:scale-95 transition ${
+                    on ? "review-tag-on bg-brand-charcoal text-white border-brand-charcoal" : "bg-brand-warmIvory border-brand-borderLight text-brand-charcoal"
+                  }`}
+                >
+                  {g.name} <Star size={12} className="text-amber-400 fill-amber-400" /> {(g.sum / g.n).toFixed(1)} <span className={on ? "opacity-80" : "text-brand-softSlate"}>({g.n})</span>
+                </button>
+              );
+            })}
           </div>
+          {!pickedTech && <p className="text-[11px] text-brand-softSlate -mt-1">Tap a technician to see only their reviews.</p>}
+
+          {pickedTech ? (
+            <TechReviews name={pickedTech} list={sorted.filter((r) => r.techName === pickedTech)} onHandled={onHandled} onClose={() => setPickedTech(null)} />
+          ) : (<>
 
           <div className="flex gap-1.5 overflow-x-auto pb-1">
             {days.map((d) => (
@@ -398,8 +431,48 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
               ))}
             </div>
           )}
+          </>)}
         </>
       )}
+    </div>
+  );
+}
+
+// one technician's reviews, newest first, with date + time
+function TechReviews({ name, list, onHandled, onClose }) {
+  const avg = list.reduce((a, r) => a + r.stars, 0) / (list.length || 1);
+  const counts = [5, 4, 3, 2, 1].map((n) => [n, list.filter((r) => r.stars === n).length]);
+  const tagCount = {};
+  for (const r of list) for (const t of r.tags || []) tagCount[t] = (tagCount[t] || 0) + 1;
+  const topTags = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  return (
+    <div className="rounded-xl border border-brand-borderGold overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2.5 bg-brand-warmIvory">
+        <span className="font-bold text-brand-charcoal text-base">{name}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm inline-flex items-center gap-1"><Star size={14} className="text-amber-400 fill-amber-400" /> <b>{avg.toFixed(1)}</b> <span className="text-brand-softSlate text-xs">· {list.length} review{list.length > 1 ? "s" : ""}</span></span>
+          <button onClick={onClose} className="w-7 h-7 rounded-full border border-brand-borderLight bg-white flex items-center justify-center" aria-label="Show all technicians"><X size={14} /></button>
+        </span>
+      </div>
+      <div className="px-3 pt-2.5 space-y-1">
+        {counts.map(([n, c]) => (
+          <div key={n} className="flex items-center gap-2 text-xs">
+            <span className="w-6 text-brand-softSlate tabular-nums">{n}★</span>
+            <span className="flex-1 h-2 rounded-full bg-brand-borderLight/60 overflow-hidden">
+              <span className="block h-full bg-amber-400 rounded-full" style={{ width: `${list.length ? (c / list.length) * 100 : 0}%` }} />
+            </span>
+            <span className="w-5 text-right tabular-nums text-brand-softSlate">{c}</span>
+          </div>
+        ))}
+      </div>
+      {topTags.length > 0 && (
+        <div className="px-3 pt-2.5 flex flex-wrap gap-1.5">
+          {topTags.map(([t, c]) => (
+            <span key={t} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-brand-borderLight text-brand-charcoal">{t} × {c}</span>
+          ))}
+        </div>
+      )}
+      <div className="px-2 pt-1"><ReviewRows list={list} showDate onHandled={onHandled} /></div>
     </div>
   );
 }
@@ -415,7 +488,7 @@ function groupByTech(list) {
   return [...map.values()].map((g) => ({ ...g, avg: g.sum / g.list.length })).sort((a, b) => b.avg - a.avg || a.name.localeCompare(b.name));
 }
 
-function ReviewRows({ list, showName = false, onHandled }) {
+function ReviewRows({ list, showName = false, showDate = false, onHandled }) {
   return (
     <ul className="divide-y divide-brand-borderLight">
       {list.map((r) => (
@@ -423,7 +496,7 @@ function ReviewRows({ list, showName = false, onHandled }) {
           <div className="flex items-center gap-2 flex-wrap">
             {showName && <b className="text-brand-charcoal">{r.techName}</b>}
             <Stars value={r.stars} />
-            <span className="text-[11px] text-brand-softSlate tabular-nums">{time(r.at)}</span>
+            <span className="text-[11px] text-brand-softSlate tabular-nums">{showDate ? `${r.date} · ` : ""}{time(r.at)}</span>
             {r.stars <= LOW && (
               r.handled ? (
                 <button onClick={() => onHandled(r.id, false)} className="ml-auto text-[11px] text-emerald-700 font-bold">✓ Handled</button>
