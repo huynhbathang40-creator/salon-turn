@@ -378,7 +378,7 @@ export default function App() {
   const reviewFlow = canEdit ? { recent: servedToday, googleUrl: data.reviewSettings?.googleUrl || DEFAULT_GOOGLE_REVIEW_URL, onSubmit: logReview } : null;
 
   const rateUrl = canEdit && !codeStale && data.reviewCode?.code
-    ? `${window.location.origin}${import.meta.env.BASE_URL}?rate=${data.reviewCode.code}`
+    ? `${window.location.origin}${window.location.pathname}?rate=${data.reviewCode.code}`
     : "";
   if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} rateUrl={rateUrl} />;
 
