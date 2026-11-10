@@ -456,7 +456,7 @@ export default function App() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2.5">
           <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 max-w-xs">
-            {[["turns", "Turns"], ["tips", "Tips"], ["pay", "Pay"]].map(([key, label]) => (
+            {[["turns", "Turns"], ["tips", canEdit && isOwner ? "Tips & Reviews" : "Tips"], ["pay", "Pay"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}

@@ -25,7 +25,7 @@ export default function PhoneRate({ code }) {
   }, []);
 
   // after sending: leave this page for the salon's Google review page, so the link isn't left open on the phone
-  const [leaveIn, setLeaveIn] = useState(5);
+  const [leaveIn, setLeaveIn] = useState(2);
   useEffect(() => {
     if (state !== "done") return;
     if (leaveIn <= 0) {
