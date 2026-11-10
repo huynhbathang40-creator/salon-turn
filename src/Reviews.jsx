@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Star, X, Check, AlertTriangle, Bell, Loader2, Send, Link2, MessageSquare, Heart,
-  Smile, Feather, BadgeCheck, MessageCircle, Ear, Clock, Sparkles, Target, Gem, Droplet, Palette, Leaf,
+  Camera, Smile, Feather, BadgeCheck, MessageCircle, Ear, Clock, Sparkles, Target, Gem, Droplet, Palette, Leaf,
   BadgeDollarSign, Armchair, Repeat, Timer, Hand, Frown, EarOff, Smartphone, XCircle, Shapes, Bandage,
   Scissors, Hourglass, Trash2, DollarSign, Volume2, Receipt, UserRound, Paintbrush, Building2,
 } from "lucide-react";
@@ -251,22 +251,42 @@ export function ThanksModal({ googleUrl, onClose }) {
 
   return (
     <Shell onClose={onClose} left={left} total={30} onTouch={touch} labelledBy="thanks-title">
-      <div className="px-6 pt-10 pb-safe-6 sm:px-10 flex flex-col items-center text-center">
-        <Heart size={34} className="text-brand-gold" />
-        <h3 id="thanks-title" className="font-serif text-3xl font-bold text-brand-charcoal mt-2">Thank you!</h3>
-        <p className="text-sm text-brand-softSlate mt-1">We hope to see you again soon.</p>
+      <div className="px-5 pt-9 pb-safe-6 sm:px-10 flex flex-col items-center text-center">
+        <h3 id="thanks-title" className="font-serif text-3xl font-bold text-brand-charcoal flex items-center gap-2"><Heart size={26} className="text-brand-gold fill-current" /> Thank you!</h3>
+        <p className="text-sm text-brand-softSlate mt-0.5">We hope to see you again soon.</p>
         {googleUrl && (
-          <>
-            <p className="text-sm font-bold text-brand-charcoal mt-5">Enjoyed your visit? Leave us a Google review</p>
-            <div className="mt-3 rounded-2xl p-2.5 bg-white qr-surface border-2 border-dashed border-brand-borderGold">
-              {qr ? <img src={qr} alt="Google review QR code" className="w-[min(52vw,24svh,240px)] aspect-square" /> : <div className="w-[min(52vw,24svh,240px)] aspect-square" />}
+          <div className="google-cta mt-5 w-full max-w-md rounded-3xl border-2 p-4 sm:p-5 flex flex-col items-center">
+            <div className="flex items-center gap-2">
+              <GoogleG />
+              <span className="flex gap-0.5" aria-hidden="true">
+                {[1, 2, 3, 4, 5].map((n) => <Star key={n} size={22} className="text-amber-400 fill-amber-400" />)}
+              </span>
             </div>
-            <p className="text-[11px] text-brand-softSlate mt-2">Open your phone's Camera and point it at the code</p>
-          </>
+            <p className="google-cta-title font-serif font-bold text-2xl sm:text-3xl leading-tight mt-2">Enjoyed your visit?</p>
+            <p className="google-cta-sub text-base sm:text-xl font-bold mt-0.5">Leave us a Google review</p>
+            <div className="mt-3 rounded-2xl p-2 bg-white qr-surface border-2 border-dashed border-brand-borderGold">
+              {qr ? <img src={qr} alt="Google review QR code" className="w-[min(50vw,24svh,260px)] aspect-square" /> : <div className="w-[min(50vw,24svh,260px)] aspect-square" />}
+            </div>
+            <p className="google-cta-hint text-sm font-semibold mt-2 flex items-center gap-1.5">
+              <Camera size={16} /> Point your phone's Camera at the code
+            </p>
+          </div>
         )}
         <button onClick={onClose} className="mt-5 px-8 py-3 rounded-2xl bg-brand-charcoal text-white font-bold">Done</button>
       </div>
     </Shell>
+  );
+}
+
+// Google's "G" mark, drawn in its four colors
+function GoogleG() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 48 48" aria-label="Google">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.2-3.9 7.2-9.6 7.2-17z" />
+      <path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.3-4.6 2.2-8.8 2.2-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z" />
+    </svg>
   );
 }
 

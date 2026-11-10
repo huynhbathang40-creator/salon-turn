@@ -87,3 +87,13 @@ html.dark .logo-light { display: none; }
 html.dark .logo-dark { display: block; }
 .salon-name { color: #9a6f28; }
 html.dark .salon-name { color: #dcbc78; }
+
+/* "Leave us a Google review" box on the Thank you screen */
+.google-cta { background: #fdf8ec; border-color: #C5A059; box-shadow: 0 10px 28px -12px rgba(197, 160, 89, 0.7); }
+.google-cta-title { color: #1E1E24; }
+.google-cta-sub { color: #8a6222; }
+.google-cta-hint { color: #4A4A52; }
+html.dark .google-cta { background: rgba(197, 160, 89, 0.12); border-color: #C5A059; }
+html.dark .google-cta-title { color: #f5f0e6; }
+html.dark .google-cta-sub { color: #e2c37f; }
+html.dark .google-cta-hint { color: #c9c4ba; }
