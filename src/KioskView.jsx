@@ -101,7 +101,7 @@ export default function KioskView({ technicians, salonPay, onTipSent, review }) 
 
 /* ---------- welcome screen (waiting for the next customer) ---------- */
 
-// the salon emblem (background removed, redrawn sharp): a deeper gold for light mode, a brighter gold for dark mode
+// the salon emblem, traced to a vector (SVG) so it is razor sharp at any size: a deeper gold for light mode, a brighter gold for dark mode
 function SalonLogo() {
   const [ok, setOk] = useState(true);
   if (!ok) return <Sparkles size={30} className="text-brand-gold mb-3" strokeWidth={1.5} />;
@@ -109,8 +109,8 @@ function SalonLogo() {
   const cls = "h-24 sm:h-36 w-auto object-contain mb-3 sm:mb-4";
   return (
     <>
-      <img src={`${base}salon-logo.png`} alt="" onError={() => setOk(false)} className={`logo-light ${cls}`} />
-      <img src={`${base}salon-logo-dark.png`} alt="" className={`logo-dark ${cls}`} />
+      <img src={`${base}salon-logo.svg`} alt="" onError={() => setOk(false)} className={`logo-light ${cls}`} />
+      <img src={`${base}salon-logo-dark.svg`} alt="" className={`logo-dark ${cls}`} />
     </>
   );
 }
