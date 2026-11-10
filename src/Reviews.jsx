@@ -236,7 +236,7 @@ export function ReviewModal({ tech, hasTip, onDone, onClose }) {
 
 /* ---------- last step (customer): thank you + Google review QR ---------- */
 
-export function ThanksModal({ googleUrl, onClose }) {
+export function ThanksModal({ googleUrl, onClose, onTip, tipName }) {
   const [left, touch] = useAutoClose(onClose, 30);
   const [qr, setQr] = useState(null);
   useEffect(() => {
@@ -272,7 +272,14 @@ export function ThanksModal({ googleUrl, onClose }) {
             </p>
           </div>
         )}
-        <button onClick={onClose} className="mt-5 px-8 py-3 rounded-2xl bg-brand-charcoal text-white font-bold">Done</button>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          {onTip && (
+            <button onClick={onTip} className="px-6 py-3 rounded-2xl border-2 border-brand-gold text-brand-charcoal font-bold flex items-center gap-2">
+              <Heart size={18} className="text-brand-gold fill-current" /> Tip {tipName ? tipName.split(" ")[0] : "your technician"}
+            </button>
+          )}
+          <button onClick={onClose} className="px-8 py-3 rounded-2xl bg-brand-charcoal text-white font-bold">Done</button>
+        </div>
       </div>
     </Shell>
   );

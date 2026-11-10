@@ -14,7 +14,10 @@ import { ReviewModal, ThanksModal } from "./Reviews.jsx";
 // tipChecks + onTipStatus: today's checks for the manager panel
 // review = { recent: { techId: last CALL time today }, googleUrl, onSubmit(tech, {stars, tags, comment}) }
 //   -> "Rate & Tip": the customer finds who served them (most recent first), rates, then tips
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, onResetTips, review = null, ownerExtra = null, onFinish }) {
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, onResetTips, review = null, ownerExtra = null, onFinish, flow = null }) {
+  // customer mode splits the two: flow "tip" = straight to Zelle / Venmo, flow "rate" = review only (tipping is optional at the end)
+  const rating = Boolean(review) && flow !== "tip";
+  const tipOnly = flow === "tip";
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -32,7 +35,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
   const q = query.trim().toLowerCase();
   // customers only see people who can receive tips; the manager also sees who is missing info
   // (with reviews on, everyone can be rated, even without Zelle / Venmo)
-  const visible = people.filter((p) => (canEdit || p.tip || review) && (!q || p.tech.name.toLowerCase().includes(q)));
+  const visible = people.filter((p) => (canEdit || p.tip || rating) && (!q || p.tech.name.toLowerCase().includes(q)));
   const missing = people.filter((p) => !p.tip);
 
   return (
@@ -40,7 +43,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       <div className="text-center pt-2">
         <h2 className="font-serif text-3xl font-bold text-brand-charcoal">{review ? "Who took care of you today?" : "Select Your Specialist"}</h2>
         <p className="text-sm text-brand-softSlate mt-1">
-          {review ? "Tap your technician to rate your service and leave a tip" : simple ? "Tap your technician to tip with Zelle or Venmo" : "Tap a name to tip with Zelle or Venmo"}
+          {rating ? (flow === "rate" ? "Tap your technician to rate your service" : "Tap your technician to rate your service and leave a tip") : simple ? "Tap your technician to tip with Zelle or Venmo" : "Tap a name to tip with Zelle or Venmo"}
         </p>
       </div>
 
@@ -74,7 +77,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           {visible.map(({ tech, tip, servedAt }) => (
             <button
               key={tech.id}
-              onClick={() => (review ? setReviewing({ tech, tip }) : tip ? setSelected({ tech, tip }) : onEditTech?.(tech.name))}
+              onClick={() => (rating ? setReviewing({ tech, tip }) : tip ? setSelected({ tech, tip, tipOnly }) : onEditTech?.(tech.name))}
               className={`relative bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${review && servedAt ? "border-2 border-brand-gold shadow-md" : tip || review ? "border-brand-borderLight" : "border-dashed border-amber-300"} ${review ? "pt-9" : ""}`}
             >
               {review && servedAt && (
@@ -118,18 +121,26 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       {reviewing && (
         <ReviewModal
           tech={reviewing.tech}
-          hasTip={Boolean(reviewing.tip)}
+          hasTip={flow !== "rate" && Boolean(reviewing.tip)}
           onClose={() => setReviewing(null)}
           onDone={(r) => {
             const { tech, tip } = reviewing;
             if (r) review.onSubmit(tech, r);
             setReviewing(null);
-            if (tip) setSelected({ tech, tip, fromReview: true });
-            else setThanks(true);
+            if (tip && flow !== "rate") setSelected({ tech, tip, fromReview: true });
+            else setThanks({ tech, tip });
           }}
         />
       )}
-      {thanks && <ThanksModal googleUrl={review?.googleUrl} onClose={() => { setThanks(false); onFinish?.(); }} />}
+      {thanks && (
+        <ThanksModal
+          googleUrl={review?.googleUrl}
+          onClose={() => { setThanks(false); onFinish?.(); }}
+          // rate-only: tipping is offered, never forced
+          onTip={flow === "rate" && thanks.tip ? () => { const { tech, tip } = thanks; setThanks(false); setSelected({ tech, tip, tipOnly: true }); } : null}
+          tipName={thanks.tech?.name}
+        />
+      )}
 
       {selected && (
         <TipModal
@@ -139,7 +150,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           simple={simple}
           onSent={onTipSent ? (method) => onTipSent(selected.tech, method) : null}
           onEdit={() => { setSelected(null); onEditTech?.(selected.tech.name); }}
-          onClose={() => { if (selected.fromReview) setThanks(true); setSelected(null); }}
+          onClose={() => { if (selected.fromReview) setThanks({}); else if (selected.tipOnly) onFinish?.(); setSelected(null); }}
         />
       )}
     </div>

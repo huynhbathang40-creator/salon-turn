@@ -15,7 +15,7 @@ const PIN_LENGTH = 6;
 const IDLE_SECONDS = 90; // no touch for this long -> back to the welcome screen for the next customer
 
 export default function KioskView({ technicians, salonPay, onTipSent, review, rateUrl }) {
-  const [tab, setTab] = useState("welcome"); // welcome | tips | pay
+  const [tab, setTab] = useState("welcome"); // welcome | tips | rate | pay
   const [exiting, setExiting] = useState(false);
 
   function goTab(key) {
@@ -55,7 +55,7 @@ export default function KioskView({ technicians, salonPay, onTipSent, review, ra
     return (
       <div className="min-h-[100dvh] bg-brand-cream text-brand-charcoal flex flex-col pt-safe pb-safe">
         <div className="flex justify-end px-4 pt-3">{lockButton}</div>
-        <Welcome name={salonPay?.name} hasReview={Boolean(review)} rateUrl={rateUrl} onStart={() => goTab("tips")} onPay={() => goTab("pay")} />
+        <Welcome name={salonPay?.name} hasReview={Boolean(review)} rateUrl={rateUrl} onTip={() => goTab("tips")} onRate={() => goTab("rate")} onPay={() => goTab("pay")} />
         {exiting && createPortal(<KioskPin mode="exit" onClose={() => setExiting(false)} onDone={() => setExiting(false)} />, document.body)}
       </div>
     );
@@ -73,7 +73,7 @@ export default function KioskView({ technicians, salonPay, onTipSent, review, ra
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
           <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-2xl p-1 max-w-md mx-auto">
-            {[["tips", review ? "Rate & Tip" : "Tip Your Technician", Heart], ["pay", "Pay for Service", Wallet]].map(([key, label, Icon]) => (
+            {(review ? [["tips", "Tip", Heart], ["rate", "Rate", Star], ["pay", "Pay", Wallet]] : [["tips", "Tip Your Technician", Heart], ["pay", "Pay for Service", Wallet]]).map(([key, label, Icon]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}
@@ -90,7 +90,7 @@ export default function KioskView({ technicians, salonPay, onTipSent, review, ra
         {tab === "pay" ? (
           <PayView pay={salonPay} isOwner={false} simple />
         ) : (
-          <TipsView technicians={technicians} canEdit={false} simple onTipSent={onTipSent} review={review} onFinish={() => goTab("welcome")} />
+          <TipsView key={tab} technicians={technicians} canEdit={false} simple onTipSent={onTipSent} review={review} flow={tab === "rate" ? "rate" : "tip"} onFinish={() => goTab("welcome")} />
         )}
       </main>
 
@@ -150,10 +150,7 @@ function SalonName({ name }) {
   );
 }
 
-function Welcome({ name, hasReview, rateUrl, onStart, onPay }) {
-  const steps = hasReview
-    ? [[Users, "Choose your technician"], [Star, "Rate your service"], [Heart, "Leave a tip"]]
-    : [[Users, "Choose your technician"], [QrCode, "Scan the QR code"], [Heart, "Leave a tip"]];
+function Welcome({ name, hasReview, rateUrl, onTip, onRate, onPay }) {
   // iPad landscape (lg): brand on the left, actions on the right, so everything fits without scrolling
   return (
     <div className="flex-1 flex items-center justify-center px-6 pb-10 welcome-in">
@@ -163,28 +160,28 @@ function Welcome({ name, hasReview, rateUrl, onStart, onPay }) {
           {name && <SalonName name={name} />}
           <h1 className="font-serif font-bold text-3xl sm:text-5xl text-brand-charcoal leading-tight">Thank you for visiting</h1>
           <p className="text-base sm:text-xl text-brand-softSlate mt-3 max-w-lg">
-            {hasReview ? "We'd love to hear about your visit. Rate your technician and leave a tip in a few taps." : "Thank your technician with a tip in a few taps."}
+            {hasReview ? "Tip your technician or tell us about your visit. Each takes just a few taps." : "Thank your technician with a tip in a few taps."}
           </p>
         </div>
 
         <div className="flex flex-col items-center w-full">
-          <div className="grid grid-cols-3 gap-2 sm:gap-6 mt-8 lg:mt-0 w-full max-w-xl">
-            {steps.map(([Icon, label], i) => (
-              <div key={label} className="flex flex-col items-center gap-2">
-                <span className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-brand-borderGold flex items-center justify-center shadow-sm">
-                  <Icon size={24} className="text-brand-gold" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-charcoal text-white text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
-                </span>
-                <span className="text-xs sm:text-sm font-semibold text-brand-charcoal leading-tight">{label}</span>
-              </div>
-            ))}
+          {/* tip and review are separate: a customer can do just one, or both */}
+          <div className={`mt-8 lg:mt-0 w-full max-w-md grid gap-3 ${hasReview ? "grid-cols-2" : "grid-cols-1"}`}>
+            <button onClick={onTip} className="welcome-cta py-5 sm:py-7 px-2 rounded-2xl font-extrabold flex flex-col items-center justify-center gap-1.5">
+              <span className="welcome-cta-shine" aria-hidden="true" />
+              <Heart size={30} className="fill-current" />
+              <span className="text-lg sm:text-2xl leading-tight">Leave a tip</span>
+              <span className="text-xs sm:text-sm font-semibold opacity-80">Zelle or Venmo</span>
+            </button>
+            {hasReview && (
+              <button onClick={onRate} className="welcome-cta py-5 sm:py-7 px-2 rounded-2xl font-extrabold flex flex-col items-center justify-center gap-1.5">
+                <span className="welcome-cta-shine" aria-hidden="true" />
+                <Star size={30} className="fill-current" />
+                <span className="text-lg sm:text-2xl leading-tight">Rate your visit</span>
+                <span className="text-xs sm:text-sm font-semibold opacity-80">Takes 10 seconds</span>
+              </button>
+            )}
           </div>
-
-          <button onClick={onStart} className="welcome-cta mt-10 lg:mt-8 w-full max-w-md py-5 sm:py-6 rounded-2xl text-lg sm:text-2xl font-extrabold flex items-center justify-center gap-2.5">
-            <span className="welcome-cta-shine" aria-hidden="true" />
-            {hasReview ? <><Star size={22} className="fill-current" /> Rate &amp; Tip your technician</> : <><Heart size={22} className="fill-current" /> Tip your technician</>}
-            <ChevronRight size={22} className="welcome-cta-arrow" />
-          </button>
           <button onClick={onPay} className="mt-3 w-full max-w-md py-4 rounded-2xl bg-white border border-brand-borderLight text-brand-charcoal text-base font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition">
             <Wallet size={18} /> Pay for your service
           </button>
