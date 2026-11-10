@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, X, Clock, ChevronDown, HandCoins } from "lucide-react";
+import { Check, X, Clock, ChevronDown, HandCoins, RotateCcw } from "lucide-react";
 
 // "I've sent it" tip check. Customers tap after sending a tip; the tech / manager confirms
 // once the money shows up. No amounts: it only records that a customer says they sent one.
@@ -106,7 +106,8 @@ export function TipCheckPanel({ tips, onStatus }) {
 }
 
 /** Owner only: every tip check by day — tech, when the customer sent it, when it was received */
-export function TipHistory({ tips }) {
+export function TipHistory({ tips, onReset }) {
+  const [confirmReset, setConfirmReset] = useState(false);
   const [open, setOpen] = useState(false); // hidden by default: the owner mostly checks reviews, not tips
   const [openDay, setOpenDay] = useState(null);
   const [view, setView] = useState("tech"); // tech | time
@@ -125,6 +126,12 @@ export function TipHistory({ tips }) {
           <Clock size={17} className="text-brand-gold" /> Tip history
           <span className="text-xs font-semibold text-brand-softSlate">({(tips || []).length})</span>
         </span>
+        <span className="flex items-center gap-1.5">
+        {onReset && (tips || []).length > 0 && (
+          <button onClick={() => setConfirmReset(true)} className="px-2.5 py-1.5 rounded-full border border-rose-200 text-rose-700 text-xs font-bold inline-flex items-center gap-1">
+            <RotateCcw size={12} /> Reset
+          </button>
+        )}
         <button
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
@@ -132,7 +139,19 @@ export function TipHistory({ tips }) {
         >
           {open ? "Hide" : "Show"} <ChevronDown size={14} className={`transition ${open ? "rotate-180" : ""}`} />
         </button>
+        </span>
       </div>
+
+      {confirmReset && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm">
+          <p className="font-bold text-rose-800">Delete all {(tips || []).length} tip records and start fresh?</p>
+          <p className="text-rose-800/80 text-xs mt-0.5">This clears the tip history on every device. It can't be undone.</p>
+          <div className="flex gap-2 mt-2.5">
+            <button onClick={() => { onReset(); setConfirmReset(false); }} className="px-3.5 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold">Yes, reset tip history</button>
+            <button onClick={() => setConfirmReset(false)} className="px-3.5 py-2 rounded-lg border border-brand-borderLight bg-white text-xs font-bold">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {open && (<>
 

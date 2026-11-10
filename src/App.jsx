@@ -488,6 +488,7 @@ export default function App() {
             tipChecks={todaysTips(data)}
             onTipStatus={setTipStatus}
             tipHistory={isOwner ? data.tips || [] : null}
+            onResetTips={() => { setData((p) => ({ ...p, tips: [] })); notify("Tip history reset."); }}
             ownerExtra={
               canEdit && isOwner ? (
                 <div className="pt-4">

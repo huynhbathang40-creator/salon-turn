@@ -14,7 +14,7 @@ import { ReviewModal, ThanksModal } from "./Reviews.jsx";
 // tipChecks + onTipStatus: today's checks for the manager panel
 // review = { recent: { techId: last CALL time today }, googleUrl, onSubmit(tech, {stars, tags, comment}) }
 //   -> "Rate & Tip": the customer finds who served them (most recent first), rates, then tips
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, review = null, ownerExtra = null, onFinish }) {
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, onResetTips, review = null, ownerExtra = null, onFinish }) {
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -113,7 +113,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
 
       {/* owner only: tip history (and reviews) at the very bottom */}
       {ownerExtra}
-      {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} /></div>}
+      {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} onReset={onResetTips} /></div>}
 
       {reviewing && (
         <ReviewModal
