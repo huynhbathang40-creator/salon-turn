@@ -297,7 +297,6 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
   const [pickedTech, setPickedTech] = useState(null); // tap a tech chip -> only that tech's reviews
   const [confirmReset, setConfirmReset] = useState(false);
   const [openDay, setOpenDay] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
   // Show / Hide, remembered on this device (shown the first time)
   const [open, setOpenState] = useState(() => { try { return localStorage.getItem("salon-turn-reviews-open") !== "0"; } catch { return true; } });
   const setOpen = (v) => { setOpenState(v); try { localStorage.setItem("salon-turn-reviews-open", v ? "1" : "0"); } catch { /* ignore */ } };
@@ -329,9 +328,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           )}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-lightGold text-brand-gold border border-brand-borderGold">Owner</span>
-          <button onClick={() => setShowSettings((v) => !v)} className="text-xs text-brand-softSlate underline">Settings</button>
-          {reviews.length > 0 && onReset && (
+          {open && reviews.length > 0 && onReset && (
             <button onClick={() => setConfirmReset(true)} className="text-xs font-bold px-2.5 py-1 rounded-full border border-rose-200 text-rose-700 inline-flex items-center gap-1">
               <RotateCcw size={12} /> Reset
             </button>
@@ -359,7 +356,6 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
         </div>
       )}
 
-      {showSettings && <ReviewSettings settings={settings} onSave={onSaveSettings} />}
 
       {low.length > 0 && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-2">
@@ -539,7 +535,7 @@ function ReviewRows({ list, showName = false, showDate = false, cards = false, o
   );
 }
 
-function ReviewSettings({ settings, onSave }) {
+export function ReviewSettings({ settings, onSave }) {
   const [google, setGoogle] = useState(settings.googleUrl || DEFAULT_GOOGLE_REVIEW_URL);
   const [topic, setTopic] = useState(settings.ntfyTopic || "");
   const [msg, setMsg] = useState("");

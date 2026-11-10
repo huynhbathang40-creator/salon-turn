@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Gem, Calendar, CheckCircle2, AlertTriangle, Plus, Pencil, Trash2, X, Crown, Star,
-  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera, Lock, PhoneCall,
+  UserRound, History, RotateCcw, Sun, Power, Archive, Cloud, Smartphone, Loader2, GripVertical, Camera, Lock, PhoneCall, Settings,
 } from "lucide-react";
 import { createStore, newId } from "./store.js";
 import SortableList from "./SortableList.jsx";
@@ -14,7 +14,7 @@ import LockedScreen from "./LockedScreen.jsx";
 import { LOCK_ENABLED } from "./auth.js";
 import { useKiosk } from "./kiosk.js";
 import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
-import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
+import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews, ReviewSettings, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -55,6 +55,7 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const [confirmNewDay, setConfirmNewDay] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false); // owner: review settings (gear icon)
   const [message, setMessage] = useState("");
   // which screen: turn board or tip directory (kept in the link, e.g. .../#tips)
   const tabFromHash = () => ({ "#tips": "tips", "#pay": "pay" })[window.location.hash] || "turns";
@@ -428,6 +429,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-charcoal flex flex-col justify-between">
+      {settingsOpen && canEdit && isOwner && (
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSettingsOpen(false)}>
+          <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 pb-safe max-h-[94vh] overflow-y-auto toast-in relative" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSettingsOpen(false)} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
+              <X size={18} />
+            </button>
+            <h3 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2 mb-3"><Settings size={18} className="text-brand-gold" /> Review settings</h3>
+            <ReviewSettings settings={data.reviewSettings || {}} onSave={saveReviewSettings} />
+          </div>
+        </div>
+      )}
       {/* HEADER */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-brand-borderLight shadow-sm pt-safe">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
@@ -446,6 +458,16 @@ export default function App() {
               <span>Business Date: <strong className="text-brand-charcoal font-semibold">{data.businessDate}</strong></span>
             </div>
             <ThemeButton onMessage={notify} />
+            {canEdit && isOwner && (
+              <button
+                onClick={() => setSettingsOpen(true)}
+                className="w-10 h-10 rounded-xl bg-white border border-brand-borderLight flex items-center justify-center text-brand-charcoal shadow-sm"
+                aria-label="Review settings"
+                title="Review settings"
+              >
+                <Settings size={18} />
+              </button>
+            )}
             <ManagerButton onMessage={notify} />
             <RewanowButton />
             <div

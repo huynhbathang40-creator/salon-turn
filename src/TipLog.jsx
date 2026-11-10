@@ -127,7 +127,7 @@ export function TipHistory({ tips, onReset }) {
           <span className="text-xs font-semibold text-brand-softSlate">({(tips || []).length})</span>
         </span>
         <span className="flex items-center gap-1.5">
-        {onReset && (tips || []).length > 0 && (
+        {open && onReset && (tips || []).length > 0 && (
           <button onClick={() => setConfirmReset(true)} className="px-2.5 py-1.5 rounded-full border border-rose-200 text-rose-700 text-xs font-bold inline-flex items-center gap-1">
             <RotateCcw size={12} /> Reset
           </button>
