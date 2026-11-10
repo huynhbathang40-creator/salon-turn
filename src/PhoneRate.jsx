@@ -74,7 +74,7 @@ export default function PhoneRate({ code }) {
       });
       if (e) throw new Error(e.message);
       if (r.stars <= LOW) sendLowAlert(board?.reviewSettings?.ntfyTopic, { techName: tech.name, stars: r.stars, tags: r.tags, comment: r.comment, at: new Date().toISOString() });
-      try { localStorage.setItem("salon-turn-rated", String(Date.now())); } catch { /* ignore */ }
+      try { localStorage.setItem("salon-turn-rated", String(Date.now())); sessionStorage.removeItem("salon-turn-rate-code"); } catch { /* ignore */ }
       setState("done");
     } catch (err) {
       setError(err.message || "Couldn't send. Check your internet and try again.");

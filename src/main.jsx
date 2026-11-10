@@ -31,8 +31,19 @@ void updateSW;
 if ("caches" in window) caches.delete("tip-staff").catch(() => {});
 try { localStorage.removeItem("salon-turn-tips-list-v1"); } catch { /* ignore */ }
 
-// ?rate=<code>: the review page a customer opens on their own phone (QR on the salon iPad)
-const rateCode = new URLSearchParams(window.location.search).get("rate");
+// ?rate=<code>: the review page a customer opens on their own phone (QR on the salon iPad).
+// The code is also kept for this browser tab (sessionStorage), because the page hides it from the address bar
+// and the app may reload itself once to update: the customer must still land on the review page, not the thank-you page.
+const RATE_KEY = "salon-turn-rate-code";
+const rateCode = (() => {
+  const fromUrl = new URLSearchParams(window.location.search).get("rate");
+  try {
+    if (fromUrl) sessionStorage.setItem(RATE_KEY, fromUrl);
+    return fromUrl || sessionStorage.getItem(RATE_KEY);
+  } catch {
+    return fromUrl;
+  }
+})();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
