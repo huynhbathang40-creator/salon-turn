@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Star, X, Check, AlertTriangle, RotateCcw, Bell, Loader2, Send, Link2, MessageSquare, Heart,
+  Star, X, Check, AlertTriangle, RotateCcw, ChevronDown, Bell, Loader2, Send, Link2, MessageSquare, Heart,
   Camera, Smile, Feather, BadgeCheck, MessageCircle, Ear, Clock, Sparkles, Target, Gem, Droplet, Palette, Leaf,
   BadgeDollarSign, Armchair, Repeat, Timer, Hand, Frown, EarOff, Smartphone, XCircle, Shapes, Bandage,
   Scissors, Hourglass, Trash2, DollarSign, Volume2, Receipt, UserRound, Paintbrush, Building2,
@@ -298,6 +298,9 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
   const [confirmReset, setConfirmReset] = useState(false);
   const [openDay, setOpenDay] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  // Show / Hide, remembered on this device (shown the first time)
+  const [open, setOpenState] = useState(() => { try { return localStorage.getItem("salon-turn-reviews-open") !== "0"; } catch { return true; } });
+  const setOpen = (v) => { setOpenState(v); try { localStorage.setItem("salon-turn-reviews-open", v ? "1" : "0"); } catch { /* ignore */ } };
 
   const sorted = reviews.slice().sort((a, b) => (a.at < b.at ? 1 : -1));
   const low = sorted.filter((r) => r.stars <= LOW && !r.handled);
@@ -316,10 +319,14 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
   const ranking = Object.values(perTech).sort((a, b) => b.sum / b.n - a.sum / a.n || b.n - a.n);
 
   return (
-    <div className="max-w-xl mx-auto rounded-2xl border border-brand-borderGold bg-white p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="max-w-xl lg:max-w-6xl mx-auto rounded-2xl border border-brand-borderGold bg-white p-4 lg:p-5 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="font-bold text-brand-charcoal flex items-center gap-2">
           <MessageSquare size={17} className="text-brand-gold" /> Customer reviews
+          <span className="text-xs font-semibold text-brand-softSlate">({reviews.length})</span>
+          {!open && low.length > 0 && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-600 text-white">{low.length} low</span>
+          )}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-lightGold text-brand-gold border border-brand-borderGold">Owner</span>
@@ -329,8 +336,17 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
               <RotateCcw size={12} /> Reset
             </button>
           )}
+          <button
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            className="px-3 py-1.5 rounded-full border border-brand-borderLight text-xs font-bold text-brand-charcoal inline-flex items-center gap-1"
+          >
+            {open ? "Hide" : "Show"} <ChevronDown size={14} className={`transition ${open ? "rotate-180" : ""}`} />
+          </button>
         </span>
       </div>
+
+      {open && (<>
 
       {confirmReset && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm">
@@ -350,6 +366,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           <div className="text-sm font-bold text-rose-800 flex items-center gap-1.5">
             <AlertTriangle size={15} /> {low.length} low rating{low.length > 1 ? "s" : ""} to look at
           </div>
+          <div className="grid gap-2 lg:grid-cols-2">
           {low.map((r) => (
             <div key={r.id} className="bg-white rounded-lg border border-rose-100 p-2.5 flex items-start gap-2">
               <div className="flex-1 min-w-0 text-sm">
@@ -364,6 +381,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
               <button onClick={() => onHandled(r.id, true)} className="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold">Handled</button>
             </div>
           ))}
+          </div>
         </div>
       )}
 
@@ -415,9 +433,9 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           </div>
 
           {view === "time" ? (
-            <ReviewRows list={dayList} showName onHandled={onHandled} />
+            <ReviewRows list={dayList} showName cards onHandled={onHandled} />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-3 lg:items-start">
               {groupByTech(dayList).map((g) => (
                 <div key={g.name} className="rounded-xl border border-brand-borderLight overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-brand-warmIvory">
@@ -434,6 +452,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
           </>)}
         </>
       )}
+      </>)}
     </div>
   );
 }
@@ -454,6 +473,8 @@ function TechReviews({ name, list, onHandled, onClose }) {
           <button onClick={onClose} className="w-7 h-7 rounded-full border border-brand-borderLight bg-white flex items-center justify-center" aria-label="Show all technicians"><X size={14} /></button>
         </span>
       </div>
+      <div className="lg:grid lg:grid-cols-[300px_1fr] lg:gap-4">
+      <div className="lg:border-r lg:border-brand-borderLight lg:pb-3">
       <div className="px-3 pt-2.5 space-y-1">
         {counts.map(([n, c]) => (
           <div key={n} className="flex items-center gap-2 text-xs">
@@ -472,7 +493,9 @@ function TechReviews({ name, list, onHandled, onClose }) {
           ))}
         </div>
       )}
-      <div className="px-2 pt-1"><ReviewRows list={list} showDate onHandled={onHandled} /></div>
+      </div>
+      <div className="px-2 pt-1 lg:pt-2 lg:pr-3"><ReviewRows list={list} showDate onHandled={onHandled} /></div>
+      </div>
     </div>
   );
 }
@@ -488,11 +511,12 @@ function groupByTech(list) {
   return [...map.values()].map((g) => ({ ...g, avg: g.sum / g.list.length })).sort((a, b) => b.avg - a.avg || a.name.localeCompare(b.name));
 }
 
-function ReviewRows({ list, showName = false, showDate = false, onHandled }) {
+// cards = on iPad, two columns of small cards: newest at the top of the left column, then down, then the right column
+function ReviewRows({ list, showName = false, showDate = false, cards = false, onHandled }) {
   return (
-    <ul className="divide-y divide-brand-borderLight">
+    <ul className={cards ? "divide-y divide-brand-borderLight lg:divide-y-0 lg:columns-2 lg:gap-2" : "divide-y divide-brand-borderLight"}>
       {list.map((r) => (
-        <li key={r.id} className="py-2.5 px-1 text-sm">
+        <li key={r.id} className={`py-2.5 px-1 text-sm ${cards ? "lg:rounded-xl lg:border lg:border-brand-borderLight lg:px-3 lg:py-2.5 lg:mb-2 lg:break-inside-avoid" : ""}`}>
           <div className="flex items-center gap-2 flex-wrap">
             {showName && <b className="text-brand-charcoal">{r.techName}</b>}
             <Stars value={r.stars} />

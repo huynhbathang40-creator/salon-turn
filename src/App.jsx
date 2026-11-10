@@ -455,12 +455,12 @@ export default function App() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2.5">
-          <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 max-w-xs">
+          <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 max-w-xs sm:max-w-md">
             {[["turns", "Turns"], ["tips", canEdit && isOwner ? "Tips & Reviews" : "Tips"], ["pay", "Pay"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}
-                className={`flex-1 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-1.5 ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
+                className={`flex-1 px-2 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition flex items-center justify-center gap-1.5 ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
               >
                 {label}
                 {key === "tips" && canEdit && isOwner && lowReviews > 0 && (
