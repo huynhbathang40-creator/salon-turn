@@ -17,8 +17,10 @@ export default function PhoneRate({ code }) {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
-  // hide the code from the address bar right away (the page keeps it in memory)
+  // hide the code from the address bar right away (the page keeps it in memory),
+  // and remember this phone is a customer's: reloading later only shows a thank-you page
   useEffect(() => {
+    try { localStorage.setItem("salon-turn-guest", "1"); } catch { /* ignore */ }
     try { history.replaceState(null, "", window.location.pathname.replace(/[^/]*$/, "") || "/"); } catch { /* ignore */ }
   }, []);
 
