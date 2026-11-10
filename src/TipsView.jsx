@@ -4,7 +4,7 @@ import Avatar from "./Avatar.jsx";
 import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js";
 import { cleanQr } from "./qrclean.js";
 import ScanSteps from "./ScanSteps.jsx";
-import { TipCheckPanel, TipHistory } from "./TipLog.jsx";
+import { TipHistory } from "./TipLog.jsx";
 import { ReviewModal, ThanksModal } from "./Reviews.jsx";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
@@ -53,7 +53,6 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
         </div>
       )}
 
-      {canEdit && tipChecks && onTipStatus && <TipCheckPanel tips={tipChecks} onStatus={onTipStatus} />}
 
       {canEdit && rows && rows.length > 0 && <CleanAllQr rows={rows.filter((r) => (r.name_key || tipKey(r.name)) !== SALON_PAY_KEY)} />}
 
@@ -113,8 +112,8 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
       )}
 
       {/* owner only: tip history (and reviews) at the very bottom */}
-      {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} /></div>}
       {ownerExtra}
+      {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} /></div>}
 
       {reviewing && (
         <ReviewModal

@@ -107,6 +107,7 @@ export function TipCheckPanel({ tips, onStatus }) {
 
 /** Owner only: every tip check by day — tech, when the customer sent it, when it was received */
 export function TipHistory({ tips }) {
+  const [open, setOpen] = useState(false); // hidden by default: the owner mostly checks reviews, not tips
   const [openDay, setOpenDay] = useState(null);
   const [view, setView] = useState("tech"); // tech | time
   const byDay = new Map();
@@ -122,9 +123,18 @@ export function TipHistory({ tips }) {
       <div className="flex items-center justify-between">
         <span className="font-bold text-brand-charcoal flex items-center gap-2">
           <Clock size={17} className="text-brand-gold" /> Tip history
+          <span className="text-xs font-semibold text-brand-softSlate">({(tips || []).length})</span>
         </span>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-lightGold text-brand-gold border border-brand-borderGold">Owner</span>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="px-3 py-1.5 rounded-full border border-brand-borderLight text-xs font-bold text-brand-charcoal flex items-center gap-1"
+        >
+          {open ? "Hide" : "Show"} <ChevronDown size={14} className={`transition ${open ? "rotate-180" : ""}`} />
+        </button>
       </div>
+
+      {open && (<>
 
       {days.length === 0 ? (
         <p className="text-sm text-brand-softSlate">No tips yet.</p>
@@ -173,6 +183,7 @@ export function TipHistory({ tips }) {
           )}
         </>
       )}
+      </>)}
     </div>
   );
 }

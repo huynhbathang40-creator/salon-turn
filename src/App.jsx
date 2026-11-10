@@ -365,7 +365,6 @@ export default function App() {
   if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} />;
 
   const isCloud = store.mode === "cloud";
-  const pendingTips = todaysTips(data).filter((t) => t.status === "pending").length;
   const lowReviews = openLowReviews(data).length;
   const sortedTechs = sortByName(data.technicians); // A–Z, owners last
   const smallCount = {}; // today's under-$30 customers per tech (shown as +N)
@@ -447,11 +446,7 @@ export default function App() {
                     {lowReviews}★
                   </span>
                 )}
-                {key === "tips" && canEdit && pendingTips > 0 && (
-                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${pendingTips} tips to check`}>
-                    {pendingTips}
-                  </span>
-                )}
+
               </button>
             ))}
           </div>
