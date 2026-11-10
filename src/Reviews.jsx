@@ -369,6 +369,7 @@ export function OwnerReviews({ reviews = [], settings = {}, onHandled, onSaveSet
                 <div className="flex items-center gap-2 flex-wrap">
                   <b className="text-brand-charcoal">{r.techName}</b> <Stars value={r.stars} />
                   <span className="text-[11px] text-brand-softSlate">{r.date} · {time(r.at)}</span>
+                  <AlertState r={r} />
                 </div>
                 {(r.tags?.length > 0 || r.comment) && (
                   <div className="text-brand-charcoal mt-0.5">{[r.tags?.join(", "), r.comment && `“${r.comment}”`].filter(Boolean).join(" · ")}</div>
@@ -530,6 +531,18 @@ function RatingSummary({ list }) {
       </div>
     </div>
   );
+}
+
+// did the phone alert for this low rating go out?
+function AlertState({ r }) {
+  if (!r.alert) return null;
+  const map = {
+    sent: ["Alert sent", "text-emerald-700"],
+    failed: ["Alert failed to send", "text-rose-700"],
+    "no-channel": ["No alert channel set", "text-amber-700"],
+  };
+  const [label, cls] = map[r.alert] || [];
+  return label ? <span className={`text-[11px] font-semibold ${cls} inline-flex items-center gap-1`}><Bell size={11} /> {label}</span> : null;
 }
 
 function groupByTech(list) {

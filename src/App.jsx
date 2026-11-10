@@ -132,7 +132,13 @@ export default function App() {
   const logReview = (tech, r) => {
     const entry = newReview(tech, r.stars, r.tags, r.comment, newId());
     store.update((p) => addReview(p, entry));
-    if (entry.stars <= LOW) sendLowAlert(data.reviewSettings?.ntfyTopic, entry);
+    if (entry.stars <= LOW) {
+      const topic = data.reviewSettings?.ntfyTopic;
+      // remember whether the phone alert went out, so the owner can see it next to the review
+      sendLowAlert(topic, entry).then((ok) =>
+        store.update((p) => ({ ...p, reviews: (p.reviews || []).map((x) => (x.id === entry.id ? { ...x, alert: !topic ? "no-channel" : ok ? "sent" : "failed" } : x)) }))
+      );
+    }
   };
   const setReviewHandled = (id, handled) => setData((p) => markHandled(p, id, handled));
   const resetReviews = () => {
