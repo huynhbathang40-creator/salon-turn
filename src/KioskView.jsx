@@ -178,7 +178,6 @@ function Welcome({ name, hasReview, rateUrl, onTip, onRate, onPay }) {
                 <span className="welcome-cta-shine" aria-hidden="true" />
                 <Star size={30} className="fill-current" />
                 <span className="text-lg sm:text-2xl leading-tight">Rate your visit</span>
-                <span className="text-xs sm:text-sm font-semibold opacity-80">Takes 10 seconds</span>
               </button>
             )}
           </div>
