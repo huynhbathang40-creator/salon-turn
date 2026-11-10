@@ -121,7 +121,7 @@ export default function ManagerButton({ onMessage }) {
 
 /* ---------- full-screen PIN pad, like the iPhone lock screen ---------- */
 
-function PinScreen({ mode = "manager", onClose, onDone }) {
+export function PinScreen({ mode = "manager", onClose, onDone }) {
   const owner = mode === "owner";
   const { status: managerStatus } = useManager();
   const { status: ownerStatus } = useOwner();

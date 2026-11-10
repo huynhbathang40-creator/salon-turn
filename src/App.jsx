@@ -10,6 +10,8 @@ import RewanowButton from "./RewanowButton.jsx";
 import TipsView from "./TipsView.jsx";
 import PayView from "./PayView.jsx";
 import KioskView from "./KioskView.jsx";
+import LockedScreen from "./LockedScreen.jsx";
+import { LOCK_ENABLED } from "./auth.js";
 import { useKiosk } from "./kiosk.js";
 import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
 import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
@@ -380,6 +382,8 @@ export default function App() {
   const rateUrl = canEdit && !codeStale && data.reviewCode?.code
     ? `${window.location.origin}${window.location.pathname}?rate=${data.reviewCode.code}`
     : "";
+  // customer mode keeps working on its own; any other device must enter the manager PIN to see anything
+  if (!kiosk && !canEdit && store.mode === "cloud" && LOCK_ENABLED) return <LockedScreen name={data.salonPay?.name} />;
   if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} rateUrl={rateUrl} />;
 
   const isCloud = store.mode === "cloud";

@@ -3,7 +3,7 @@ import { Loader2, CheckCircle2, AlertCircle, Search } from "lucide-react";
 import Avatar from "./Avatar.jsx";
 import { getClient } from "./db.js";
 import { sortByName } from "./staff.js";
-import { ReviewModal, sendLowAlert, LOW } from "./Reviews.jsx";
+import { ReviewModal, sendLowAlert, LOW, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
 
 // The page a customer opens on their own phone by scanning the "Rate on your phone" QR on the salon iPad.
 // URL: .../salon-turn/?rate=<today's code>. It reads the staff list (public) and sends one review
@@ -16,6 +16,23 @@ export default function PhoneRate({ code }) {
   const [state, setState] = useState("idle"); // idle | sending | done | error
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+
+  // hide the code from the address bar right away (the page keeps it in memory)
+  useEffect(() => {
+    try { history.replaceState(null, "", window.location.pathname.replace(/[^/]*$/, "") || "/"); } catch { /* ignore */ }
+  }, []);
+
+  // after sending: leave this page for the salon's Google review page, so the link isn't left open on the phone
+  const [leaveIn, setLeaveIn] = useState(5);
+  useEffect(() => {
+    if (state !== "done") return;
+    if (leaveIn <= 0) {
+      window.location.replace(board?.reviewSettings?.googleUrl || DEFAULT_GOOGLE_REVIEW_URL);
+      return;
+    }
+    const t = setTimeout(() => setLeaveIn((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [state, leaveIn, board]);
 
   useEffect(() => {
     let alive = true;
@@ -82,7 +99,10 @@ export default function PhoneRate({ code }) {
         )}
 
         {state === "done" && (
-          <Notice icon={CheckCircle2} tone="good" title="Thank you for your review!" text="Your feedback goes straight to the salon. We hope to see you again soon." />
+          <>
+            <Notice icon={CheckCircle2} tone="good" title="Thank you for your review!" text="Your feedback goes straight to the salon. We hope to see you again soon." />
+            <p className="text-center text-sm text-brand-softSlate mt-4">Taking you to our Google page in {Math.max(leaveIn, 0)}s…</p>
+          </>
         )}
 
         {board && !expired && state !== "done" && (
