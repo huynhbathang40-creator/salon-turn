@@ -14,6 +14,10 @@ import Avatar from "./Avatar.jsx";
 
 const KEEP = 600; // older reviews are dropped so the board stays small
 export const LOW = 3; // this many stars or fewer = low rating (alert)
+
+// BeautiLuxe Nail Spa (9882 Glades Rd, Boca Raton) on Google: this link opens the "write a review" form directly.
+// Used until the owner saves another link in Reviews > Settings.
+export const DEFAULT_GOOGLE_REVIEW_URL = "https://search.google.com/local/writereview?placeid=ChIJm6ZCcOIb2YgRlyuoNVAGzKE";
 const AUTO_CLOSE = 90;
 
 // quick tags, grouped so they are easy to scan and tap
@@ -418,7 +422,7 @@ function ReviewRows({ list, showName = false, onHandled }) {
 }
 
 function ReviewSettings({ settings, onSave }) {
-  const [google, setGoogle] = useState(settings.googleUrl || "");
+  const [google, setGoogle] = useState(settings.googleUrl || DEFAULT_GOOGLE_REVIEW_URL);
   const [topic, setTopic] = useState(settings.ntfyTopic || "");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);

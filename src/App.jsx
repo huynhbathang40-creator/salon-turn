@@ -12,7 +12,7 @@ import PayView from "./PayView.jsx";
 import KioskView from "./KioskView.jsx";
 import { useKiosk } from "./kiosk.js";
 import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
-import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews } from "./Reviews.jsx";
+import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -360,7 +360,7 @@ export default function App() {
   // who served a customer today (latest CALL / +1 per tech), so customers find their technician first
   const servedToday = {};
   for (const h of data.history) if (!servedToday[h.techId] || h.timestamp > servedToday[h.techId]) servedToday[h.techId] = h.timestamp;
-  const reviewFlow = canEdit ? { recent: servedToday, googleUrl: data.reviewSettings?.googleUrl || "", onSubmit: logReview } : null;
+  const reviewFlow = canEdit ? { recent: servedToday, googleUrl: data.reviewSettings?.googleUrl || DEFAULT_GOOGLE_REVIEW_URL, onSubmit: logReview } : null;
 
   if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} />;
 
