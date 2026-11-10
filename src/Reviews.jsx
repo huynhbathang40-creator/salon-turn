@@ -9,10 +9,19 @@ import Avatar from "./Avatar.jsx";
 
 const KEEP = 600; // older reviews are dropped so the board stays small
 export const LOW = 3; // this many stars or fewer = low rating (alert)
-const AUTO_CLOSE = 60;
+const AUTO_CLOSE = 90;
 
-export const GOOD_TAGS = ["Friendly", "Gentle", "Beautiful work", "Clean & neat", "On time", "Great value"];
-export const BAD_TAGS = ["Too rushed", "Not what I wanted", "Waited too long", "Not gentle", "Not clean", "Polish not neat"];
+// quick tags, grouped so they are easy to scan and tap
+export const GOOD_GROUPS = [
+  ["Your technician", ["Friendly", "Gentle", "Professional", "Great advice"]],
+  ["Your nails", ["Beautiful work", "Clean & neat", "Exactly what I wanted", "Perfect shape"]],
+  ["Your visit", ["On time", "Relaxing", "Clean salon", "Great value"]],
+];
+export const BAD_GROUPS = [
+  ["Your technician", ["Too rushed", "Not gentle", "Not friendly", "Didn't listen"]],
+  ["Your nails", ["Not what I wanted", "Polish not neat", "Uneven shape", "Got hurt"]],
+  ["Your visit", ["Waited too long", "Not clean", "Too pricey", "Too noisy"]],
+];
 const STAR_WORDS = ["", "Poor", "Fair", "Okay", "Good", "Excellent"];
 
 /* ---------- data helpers ---------- */
@@ -91,7 +100,7 @@ function Shell({ children, onClose, left, total, onTouch, labelledBy }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className="bg-white w-full sm:max-w-xl rounded-t-3xl sm:rounded-3xl max-h-[96dvh] flex flex-col relative toast-in overflow-hidden"
+        className="bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[96dvh] flex flex-col relative toast-in overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={onTouch}
       >
@@ -118,7 +127,7 @@ export function ReviewModal({ tech, hasTip, onDone, onClose }) {
   const [tags, setTags] = useState([]);
   const [comment, setComment] = useState("");
   const [left, touch] = useAutoClose(onClose);
-  const choices = stars === 0 ? [] : stars <= LOW ? BAD_TAGS : GOOD_TAGS;
+  const groups = stars === 0 ? [] : stars <= LOW ? BAD_GROUPS : GOOD_GROUPS;
 
   function pickStars(n) {
     if ((n <= LOW) !== (stars <= LOW) || stars === 0) setTags([]); // tag list changes between good / bad
@@ -157,25 +166,38 @@ export function ReviewModal({ tech, hasTip, onDone, onClose }) {
 
         {stars > 0 && (
           <>
-            <p className="text-center text-xs text-brand-softSlate mt-3 mb-2">{stars <= LOW ? "What could be better?" : "What did you love?"} (optional)</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {choices.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => toggle(t)}
-                  className={`px-3.5 py-2 rounded-full text-sm font-semibold border transition ${
-                    tags.includes(t) ? "review-tag-on bg-brand-charcoal text-white border-brand-charcoal" : "bg-white text-brand-charcoal border-brand-borderLight"
-                  }`}
-                >
-                  {t}
-                </button>
+            <p className="text-center text-sm font-bold text-brand-charcoal mt-4">
+              {stars <= LOW ? "What could be better?" : "What did you love?"} <span className="font-normal text-brand-softSlate">(tap any)</span>
+            </p>
+            <div className="mt-2 space-y-3">
+              {groups.map(([group, list]) => (
+                <div key={group}>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-brand-softSlate mb-1.5">{group}</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {list.map((t) => {
+                      const on = tags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => toggle(t)}
+                          aria-pressed={on}
+                          className={`min-h-[44px] px-2.5 py-2 rounded-xl text-[13px] sm:text-sm font-semibold border transition flex items-center justify-center gap-1.5 text-center leading-tight active:scale-[0.97] ${
+                            on ? "review-tag-on bg-brand-charcoal text-white border-brand-charcoal" : "bg-white text-brand-charcoal border-brand-borderLight"
+                          }`}
+                        >
+                          {on && <Check size={14} className="shrink-0" />} {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               maxLength={300}
-              rows={2}
+              rows={1}
               placeholder="Anything else? (optional)"
               className="mt-3 w-full bg-brand-warmIvory border border-brand-borderLight rounded-xl px-3.5 py-2.5 text-base sm:text-sm focus:outline-none focus:border-brand-gold resize-none"
             />

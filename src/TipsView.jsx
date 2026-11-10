@@ -14,7 +14,7 @@ import { ReviewModal, ThanksModal } from "./Reviews.jsx";
 // tipChecks + onTipStatus: today's checks for the manager panel
 // review = { recent: { techId: last CALL time today }, googleUrl, onSubmit(tech, {stars, tags, comment}) }
 //   -> "Rate & Tip": the customer finds who served them (most recent first), rates, then tips
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, review = null, ownerExtra = null }) {
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, review = null, ownerExtra = null, onFinish }) {
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
@@ -130,7 +130,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           }}
         />
       )}
-      {thanks && <ThanksModal googleUrl={review?.googleUrl} onClose={() => setThanks(false)} />}
+      {thanks && <ThanksModal googleUrl={review?.googleUrl} onClose={() => { setThanks(false); onFinish?.(); }} />}
 
       {selected && (
         <TipModal
@@ -154,8 +154,8 @@ function TipModal({ name, tip, onClose, canEdit, onEdit, simple, onSent }) {
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState("idle"); // idle | saving | done | error
 
-  // auto-close: the popup goes back to the tech list by itself after 45 s (a tap inside restarts the count)
-  const AUTO_CLOSE = 45;
+  // auto-close: the popup goes back to the tech list by itself after 90 s (a tap inside restarts the count)
+  const AUTO_CLOSE = 90;
   const [left, setLeft] = useState(AUTO_CLOSE);
   useEffect(() => {
     const t = setInterval(() => setLeft((n) => n - 1), 1000);

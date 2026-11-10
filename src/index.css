@@ -54,3 +54,10 @@ button { cursor: pointer; touch-action: manipulation; }
 .scan-venmo .scan-title { color: #0074d4; }
 .scan-venmo .scan-num { background: #008CFF; }
 .scan-text { color: #1E1E24; }
+
+/* customer mode welcome screen */
+@keyframes welcome-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.welcome-in { animation: welcome-in 0.5s ease-out both; }
+@keyframes welcome-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(197, 160, 89, 0.45); } 50% { box-shadow: 0 0 0 12px rgba(197, 160, 89, 0); } }
+.welcome-cta { animation: welcome-pulse 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .welcome-in, .welcome-cta { animation: none; } }
