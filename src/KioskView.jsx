@@ -12,7 +12,7 @@ const PIN_LENGTH = 6;
 
 /* ---------- the customer screen: Tips + Pay only ---------- */
 
-export default function KioskView({ technicians, salonPay, onTipSent }) {
+export default function KioskView({ technicians, salonPay, onTipSent, review }) {
   const [tab, setTab] = useState(() => (window.location.hash === "#pay" ? "pay" : "tips"));
   const [exiting, setExiting] = useState(false);
 
@@ -39,7 +39,7 @@ export default function KioskView({ technicians, salonPay, onTipSent }) {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3">
           <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-2xl p-1 max-w-md mx-auto">
-            {[["tips", "Tip Your Technician", Heart], ["pay", "Pay for Service", Wallet]].map(([key, label, Icon]) => (
+            {[["tips", review ? "Rate & Tip" : "Tip Your Technician", Heart], ["pay", "Pay for Service", Wallet]].map(([key, label, Icon]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}
@@ -53,7 +53,7 @@ export default function KioskView({ technicians, salonPay, onTipSent }) {
       </header>
 
       <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${tab === "pay" ? "py-3" : "py-4"} sm:py-8 w-full flex-grow`}>
-        {tab === "pay" ? <PayView pay={salonPay} isOwner={false} simple /> : <TipsView technicians={technicians} canEdit={false} simple onTipSent={onTipSent} />}
+        {tab === "pay" ? <PayView pay={salonPay} isOwner={false} simple /> : <TipsView technicians={technicians} canEdit={false} simple onTipSent={onTipSent} review={review} />}
       </main>
 
       {exiting && createPortal(<KioskPin mode="exit" onClose={() => setExiting(false)} onDone={() => setExiting(false)} />, document.body)}

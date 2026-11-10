@@ -12,6 +12,7 @@ import PayView from "./PayView.jsx";
 import KioskView from "./KioskView.jsx";
 import { useKiosk } from "./kiosk.js";
 import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
+import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews } from "./Reviews.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
 import ManagerButton from "./ManagerButton.jsx";
@@ -113,6 +114,19 @@ export default function App() {
     return store.update((p) => addTipEntry(p, entry));
   };
   const setTipStatus = (id, status) => setData((p) => setTipEntryStatus(p, id, status));
+
+  // customer reviews (Rate & Tip): saved on the shared board; 3 stars or less also pings the owner's phone (ntfy)
+  const logReview = (tech, r) => {
+    const entry = newReview(tech, r.stars, r.tags, r.comment, newId());
+    store.update((p) => addReview(p, entry));
+    if (entry.stars <= LOW) sendLowAlert(data.reviewSettings?.ntfyTopic, entry);
+  };
+  const setReviewHandled = (id, handled) => setData((p) => markHandled(p, id, handled));
+  async function saveReviewSettings(settings) {
+    if (!canEdit || !isOwner) throw new Error("Owner mode is needed to change this.");
+    await store.update((p) => ({ ...p, reviewSettings: { ...(p.reviewSettings || {}), ...settings } }));
+    notify("Review settings saved.");
+  }
 
   // salon Zelle (Pay tab): kept on the shared board so every device sees it; only owner mode can change it
   async function saveSalonPay(pay) {
@@ -343,10 +357,16 @@ export default function App() {
       </div>
     );
 
-  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} />;
+  // who served a customer today (latest CALL / +1 per tech), so customers find their technician first
+  const servedToday = {};
+  for (const h of data.history) if (!servedToday[h.techId] || h.timestamp > servedToday[h.techId]) servedToday[h.techId] = h.timestamp;
+  const reviewFlow = canEdit ? { recent: servedToday, googleUrl: data.reviewSettings?.googleUrl || "", onSubmit: logReview } : null;
+
+  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} />;
 
   const isCloud = store.mode === "cloud";
   const pendingTips = todaysTips(data).filter((t) => t.status === "pending").length;
+  const lowReviews = openLowReviews(data).length;
   const sortedTechs = sortByName(data.technicians); // A–Z, owners last
   const smallCount = {}; // today's under-$30 customers per tech (shown as +N)
   for (const h of data.history) if (h.kind === "small") smallCount[h.techId] = (smallCount[h.techId] || 0) + 1;
@@ -422,6 +442,11 @@ export default function App() {
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-1.5 ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
               >
                 {label}
+                {key === "tips" && canEdit && isOwner && lowReviews > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${lowReviews} low ratings`}>
+                    {lowReviews}★
+                  </span>
+                )}
                 {key === "tips" && canEdit && pendingTips > 0 && (
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${pendingTips} tips to check`}>
                     {pendingTips}
@@ -446,6 +471,13 @@ export default function App() {
             tipChecks={todaysTips(data)}
             onTipStatus={setTipStatus}
             tipHistory={isOwner ? data.tips || [] : null}
+            ownerExtra={
+              canEdit && isOwner ? (
+                <div className="pt-4">
+                  <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} />
+                </div>
+              ) : null
+            }
             onEditTech={(name) => canEdit && setTechEditor({ tech: data.technicians.find((t) => t.name === name) || null, initialName: name })}
           />
         </main>

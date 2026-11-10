@@ -5,32 +5,43 @@ import { useTipRows, getQr, tipKey, saveTechTip, SALON_PAY_KEY } from "./tips.js
 import { cleanQr } from "./qrclean.js";
 import ScanSteps from "./ScanSteps.jsx";
 import { TipCheckPanel, TipHistory } from "./TipLog.jsx";
+import { ReviewModal, ThanksModal } from "./Reviews.jsx";
 
 // Tip directory. The list of people comes from the turn board (one shared staff list);
 // each person's Zelle / Venmo comes from the tip info saved for that name.
 // simple = customer mode: just the photo and a big name on each card
 // onTipSent(tech, method): saves an "I've sent it" check (only on devices that can save)
 // tipChecks + onTipStatus: today's checks for the manager panel
-export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory }) {
+// review = { recent: { techId: last CALL time today }, googleUrl, onSubmit(tech, {stars, tags, comment}) }
+//   -> "Rate & Tip": the customer finds who served them (most recent first), rates, then tips
+export default function TipsView({ technicians = [], canEdit = false, onEditTech, simple = false, onTipSent, tipChecks, onTipStatus, tipHistory, review = null, ownerExtra = null }) {
   const { rows, loadError } = useTipRows();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
+  const [reviewing, setReviewing] = useState(null); // { tech, tip }
+  const [thanks, setThanks] = useState(false);
 
   const people = useMemo(() => {
     const byKey = new Map((rows || []).map((r) => [r.name_key || tipKey(r.name), r]));
-    return technicians.map((t) => ({ tech: t, tip: byKey.get(tipKey(t.name)) || null }));
-  }, [technicians, rows]);
+    const list = technicians.map((t) => ({ tech: t, tip: byKey.get(tipKey(t.name)) || null, servedAt: review?.recent?.[t.id] || null }));
+    // Rate & Tip: whoever served a customer most recently comes first, then everyone else in the usual order
+    if (review) list.sort((a, b) => (b.servedAt || "").localeCompare(a.servedAt || ""));
+    return list;
+  }, [technicians, rows, review]);
 
   const q = query.trim().toLowerCase();
   // customers only see people who can receive tips; the manager also sees who is missing info
-  const visible = people.filter((p) => (canEdit || p.tip) && (!q || p.tech.name.toLowerCase().includes(q)));
+  // (with reviews on, everyone can be rated, even without Zelle / Venmo)
+  const visible = people.filter((p) => (canEdit || p.tip || review) && (!q || p.tech.name.toLowerCase().includes(q)));
   const missing = people.filter((p) => !p.tip);
 
   return (
     <div className="space-y-5">
       <div className="text-center pt-2">
-        <h2 className="font-serif text-3xl font-bold text-brand-charcoal">Select Your Specialist</h2>
-        <p className="text-sm text-brand-softSlate mt-1">{simple ? "Tap your technician to tip with Zelle or Venmo" : "Tap a name to tip with Zelle or Venmo"}</p>
+        <h2 className="font-serif text-3xl font-bold text-brand-charcoal">{review ? "Who took care of you today?" : "Select Your Specialist"}</h2>
+        <p className="text-sm text-brand-softSlate mt-1">
+          {review ? "Tap your technician to rate your service and leave a tip" : simple ? "Tap your technician to tip with Zelle or Venmo" : "Tap a name to tip with Zelle or Venmo"}
+        </p>
       </div>
 
       {canEdit && rows && missing.length > 0 && (
@@ -61,12 +72,17 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
 
       {rows && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {visible.map(({ tech, tip }) => (
+          {visible.map(({ tech, tip, servedAt }) => (
             <button
               key={tech.id}
-              onClick={() => (tip ? setSelected({ tech, tip }) : onEditTech?.(tech.name))}
-              className={`bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${tip ? "border-brand-borderLight" : "border-dashed border-amber-300"}`}
+              onClick={() => (review ? setReviewing({ tech, tip }) : tip ? setSelected({ tech, tip }) : onEditTech?.(tech.name))}
+              className={`relative bg-white rounded-2xl border shadow-sm p-4 flex flex-col items-center gap-2 active:scale-[0.98] transition ${tip || review ? "border-brand-borderLight" : "border-dashed border-amber-300"} ${review && !servedAt ? "opacity-70" : ""} ${review ? "pt-9" : ""}`}
             >
+              {review && servedAt && (
+                <span className="absolute top-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  Today · {new Date(servedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                </span>
+              )}
               {simple ? (
                 <>
                   <Avatar name={tech.name} size={96} />
@@ -83,7 +99,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
                   <Heart size={12} /> Tip {tech.name.split(" ")[0]}
                 </span>
               )}
-              {!tip && (
+              {!tip && !review && (
                 <span className="w-full py-2 rounded-full bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5">
                   <Pencil size={12} /> Add Zelle / Venmo
                 </span>
@@ -96,8 +112,25 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
         <p className="text-center text-sm text-brand-softSlate py-6">{q ? `No technician named "${query}".` : "No technicians yet."}</p>
       )}
 
-      {/* owner only: tip history at the very bottom */}
+      {/* owner only: tip history (and reviews) at the very bottom */}
       {canEdit && tipHistory && <div className="pt-4"><TipHistory tips={tipHistory} /></div>}
+      {ownerExtra}
+
+      {reviewing && (
+        <ReviewModal
+          tech={reviewing.tech}
+          hasTip={Boolean(reviewing.tip)}
+          onClose={() => setReviewing(null)}
+          onDone={(r) => {
+            const { tech, tip } = reviewing;
+            if (r) review.onSubmit(tech, r);
+            setReviewing(null);
+            if (tip) setSelected({ tech, tip, fromReview: true });
+            else setThanks(true);
+          }}
+        />
+      )}
+      {thanks && <ThanksModal googleUrl={review?.googleUrl} onClose={() => setThanks(false)} />}
 
       {selected && (
         <TipModal
@@ -107,7 +140,7 @@ export default function TipsView({ technicians = [], canEdit = false, onEditTech
           simple={simple}
           onSent={onTipSent ? (method) => onTipSent(selected.tech, method) : null}
           onEdit={() => { setSelected(null); onEditTech?.(selected.tech.name); }}
-          onClose={() => setSelected(null)}
+          onClose={() => { if (selected.fromReview) setThanks(true); setSelected(null); }}
         />
       )}
     </div>

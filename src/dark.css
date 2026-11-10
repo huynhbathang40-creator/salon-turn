@@ -83,3 +83,6 @@ html.dark .scan-text { color: #edeae4; }
 html.dark .pay-tab:not(.pay-tab-active) { color: #a5a5af !important; border-color: #3c3c45 !important; }
 html.dark .pay-tab-zelle { color: #d8b4fe !important; border-color: #a855f7 !important; }
 html.dark .pay-tab-venmo { color: #93c5fd !important; border-color: #3b9bff !important; }
+
+/* review tags: a chosen tag must stand out in dark mode */
+html.dark .review-tag-on { background: #d4b46a !important; color: #1a1a1f !important; border-color: #d4b46a !important; }
