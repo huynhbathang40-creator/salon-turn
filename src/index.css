@@ -97,3 +97,11 @@ html.dark .google-cta { background: rgba(197, 160, 89, 0.12); border-color: #C5A
 html.dark .google-cta-title { color: #f5f0e6; }
 html.dark .google-cta-sub { color: #e2c37f; }
 html.dark .google-cta-hint { color: #c9c4ba; }
+
+/* "In a hurry? rate on your phone" card on the welcome screen */
+.rate-phone { background: #ffffff; border-color: #C5A059; }
+.rate-phone-title { color: #1E1E24; }
+.rate-phone-text { color: #4A4A52; }
+html.dark .rate-phone { background: rgba(197, 160, 89, 0.10); }
+html.dark .rate-phone-title { color: #f5f0e6; }
+html.dark .rate-phone-text { color: #c9c4ba; }

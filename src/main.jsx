@@ -12,6 +12,7 @@ import { applyTheme } from "./theme.js";
 
 applyTheme();
 import App from "./App.jsx";
+import PhoneRate from "./PhoneRate.jsx";
 import { registerSW } from "virtual:pwa-register";
 
 // When a new version is published, switch to it right away (and check again whenever the app comes back to the screen)
@@ -30,8 +31,11 @@ void updateSW;
 if ("caches" in window) caches.delete("tip-staff").catch(() => {});
 try { localStorage.removeItem("salon-turn-tips-list-v1"); } catch { /* ignore */ }
 
+// ?rate=<code>: the review page a customer opens on their own phone (QR on the salon iPad)
+const rateCode = new URLSearchParams(window.location.search).get("rate");
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    {rateCode ? <PhoneRate code={rateCode} /> : <App />}
   </React.StrictMode>
 );

@@ -497,6 +497,7 @@ function ReviewRows({ list, showName = false, showDate = false, onHandled }) {
             {showName && <b className="text-brand-charcoal">{r.techName}</b>}
             <Stars value={r.stars} />
             <span className="text-[11px] text-brand-softSlate tabular-nums">{showDate ? `${r.date} · ` : ""}{time(r.at)}</span>
+            {r.source === "phone" && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200">Phone</span>}
             {r.stars <= LOW && (
               r.handled ? (
                 <button onClick={() => onHandled(r.id, false)} className="ml-auto text-[11px] text-emerald-700 font-bold">✓ Handled</button>

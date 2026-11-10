@@ -73,6 +73,16 @@ export default function App() {
   const [techEditor, setTechEditor] = useState(null); // { tech } to edit, or { initialName } to add
   const { rows: tipRows } = useTipRows();
   const avatars = useAvatars();
+
+  // "Rate on your phone" QR (customer mode): a fresh code for each business day, older than ~18 h also renews.
+  // The phone review page only works with the current code, so a photo of yesterday's QR is useless.
+  const codeStale =
+    data && (data.reviewCode?.date !== data.businessDate || Date.now() - (data.reviewCode?.at || 0) > 18 * 3600 * 1000);
+  useEffect(() => {
+    if (!kiosk || !canEdit || !store || !codeStale) return;
+    const code = Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
+    store.update((p) => ({ ...p, reviewCode: { date: p.businessDate, code, at: Date.now() } }));
+  }, [kiosk, canEdit, store, codeStale]);
   const phones = usePhones(); // only filled on manager devices
   const [showCalls] = useShowCalls(); // per device: on for iPhone, off for the salon iPad unless switched on
   // 📞 button next to a name (shows only when a number is saved)
@@ -367,7 +377,10 @@ export default function App() {
   for (const h of data.history) if (!servedToday[h.techId] || h.timestamp > servedToday[h.techId]) servedToday[h.techId] = h.timestamp;
   const reviewFlow = canEdit ? { recent: servedToday, googleUrl: data.reviewSettings?.googleUrl || DEFAULT_GOOGLE_REVIEW_URL, onSubmit: logReview } : null;
 
-  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} />;
+  const rateUrl = canEdit && !codeStale && data.reviewCode?.code
+    ? `${window.location.origin}${import.meta.env.BASE_URL}?rate=${data.reviewCode.code}`
+    : "";
+  if (kiosk) return <KioskView technicians={sortByName(data.technicians)} salonPay={data.salonPay} onTipSent={canEdit ? logTipSent : null} review={reviewFlow} rateUrl={rateUrl} />;
 
   const isCloud = store.mode === "cloud";
   const lowReviews = openLowReviews(data).length;

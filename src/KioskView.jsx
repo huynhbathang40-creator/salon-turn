@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Lock, X, Delete, Loader2, ShieldCheck, Store, Heart, Wallet, ChevronLeft, Sparkles, Star, Users, QrCode, ChevronRight } from "lucide-react";
+import { Lock, X, Delete, Loader2, ShieldCheck, Store, Heart, Wallet, ChevronLeft, Sparkles, Star, Users, QrCode, ChevronRight, Smartphone } from "lucide-react";
 import TipsView from "./TipsView.jsx";
 import PayView from "./PayView.jsx";
 import { Key } from "./ManagerButton.jsx";
@@ -14,7 +14,7 @@ const PIN_LENGTH = 6;
 
 const IDLE_SECONDS = 90; // no touch for this long -> back to the welcome screen for the next customer
 
-export default function KioskView({ technicians, salonPay, onTipSent, review }) {
+export default function KioskView({ technicians, salonPay, onTipSent, review, rateUrl }) {
   const [tab, setTab] = useState("welcome"); // welcome | tips | pay
   const [exiting, setExiting] = useState(false);
 
@@ -55,7 +55,7 @@ export default function KioskView({ technicians, salonPay, onTipSent, review }) 
     return (
       <div className="min-h-[100dvh] bg-brand-cream text-brand-charcoal flex flex-col pt-safe pb-safe">
         <div className="flex justify-end px-4 pt-3">{lockButton}</div>
-        <Welcome name={salonPay?.name} hasReview={Boolean(review)} onStart={() => goTab("tips")} onPay={() => goTab("pay")} />
+        <Welcome name={salonPay?.name} hasReview={Boolean(review)} rateUrl={rateUrl} onStart={() => goTab("tips")} onPay={() => goTab("pay")} />
         {exiting && createPortal(<KioskPin mode="exit" onClose={() => setExiting(false)} onDone={() => setExiting(false)} />, document.body)}
       </div>
     );
@@ -101,6 +101,30 @@ export default function KioskView({ technicians, salonPay, onTipSent, review }) 
 
 /* ---------- welcome screen (waiting for the next customer) ---------- */
 
+// "In a hurry?" QR: the customer rates on their own phone (?rate=<today's code>)
+function RateOnPhone({ url }) {
+  const [qr, setQr] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    import("qrcode")
+      .then(({ default: QRCode }) => QRCode.toDataURL(url, { errorCorrectionLevel: "M", margin: 1, width: 400 }))
+      .then((u) => alive && setQr(u))
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [url]);
+  return (
+    <div className="rate-phone mt-6 w-full max-w-md rounded-2xl border-2 border-dashed p-3 sm:p-4 flex items-center gap-4 text-left">
+      <div className="shrink-0 rounded-xl bg-white p-1.5 qr-surface">
+        {qr ? <img src={qr} alt="Rate on your phone QR code" className="w-24 h-24 sm:w-28 sm:h-28" /> : <div className="w-24 h-24 sm:w-28 sm:h-28" />}
+      </div>
+      <div className="min-w-0">
+        <div className="rate-phone-title font-bold text-base sm:text-lg leading-tight flex items-center gap-1.5"><Smartphone size={18} /> In a hurry?</div>
+        <div className="rate-phone-text text-sm sm:text-base mt-1">Scan with your phone's Camera to rate your technician on your own phone.</div>
+      </div>
+    </div>
+  );
+}
+
 // the salon emblem, traced to a vector (SVG) so it is razor sharp at any size: a deeper gold for light mode, a brighter gold for dark mode
 function SalonLogo() {
   const [ok, setOk] = useState(true);
@@ -126,39 +150,48 @@ function SalonName({ name }) {
   );
 }
 
-function Welcome({ name, hasReview, onStart, onPay }) {
+function Welcome({ name, hasReview, rateUrl, onStart, onPay }) {
   const steps = hasReview
     ? [[Users, "Choose your technician"], [Star, "Rate your service"], [Heart, "Leave a tip"]]
     : [[Users, "Choose your technician"], [QrCode, "Scan the QR code"], [Heart, "Leave a tip"]];
+  // iPad landscape (lg): brand on the left, actions on the right, so everything fits without scrolling
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10 text-center welcome-in">
-      <SalonLogo />
-      {name && <SalonName name={name} />}
-      <h1 className="font-serif font-bold text-3xl sm:text-5xl text-brand-charcoal leading-tight">Thank you for visiting</h1>
-      <p className="text-base sm:text-xl text-brand-softSlate mt-3 max-w-lg">
-        {hasReview ? "We'd love to hear about your visit. Rate your technician and leave a tip in a few taps." : "Thank your technician with a tip in a few taps."}
-      </p>
+    <div className="flex-1 flex items-center justify-center px-6 pb-10 welcome-in">
+      <div className="w-full max-w-xl lg:max-w-6xl flex flex-col items-center text-center lg:grid lg:grid-cols-2 lg:gap-14 lg:items-center">
+        <div className="flex flex-col items-center">
+          <SalonLogo />
+          {name && <SalonName name={name} />}
+          <h1 className="font-serif font-bold text-3xl sm:text-5xl text-brand-charcoal leading-tight">Thank you for visiting</h1>
+          <p className="text-base sm:text-xl text-brand-softSlate mt-3 max-w-lg">
+            {hasReview ? "We'd love to hear about your visit. Rate your technician and leave a tip in a few taps." : "Thank your technician with a tip in a few taps."}
+          </p>
+        </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:gap-6 mt-8 w-full max-w-xl">
-        {steps.map(([Icon, label], i) => (
-          <div key={label} className="flex flex-col items-center gap-2">
-            <span className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-brand-borderGold flex items-center justify-center shadow-sm">
-              <Icon size={24} className="text-brand-gold" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-charcoal text-white text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
-            </span>
-            <span className="text-xs sm:text-sm font-semibold text-brand-charcoal leading-tight">{label}</span>
+        <div className="flex flex-col items-center w-full">
+          <div className="grid grid-cols-3 gap-2 sm:gap-6 mt-8 lg:mt-0 w-full max-w-xl">
+            {steps.map(([Icon, label], i) => (
+              <div key={label} className="flex flex-col items-center gap-2">
+                <span className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border border-brand-borderGold flex items-center justify-center shadow-sm">
+                  <Icon size={24} className="text-brand-gold" />
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-charcoal text-white text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-brand-charcoal leading-tight">{label}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <button onClick={onStart} className="welcome-cta mt-10 w-full max-w-md py-5 sm:py-6 rounded-2xl text-lg sm:text-2xl font-extrabold flex items-center justify-center gap-2.5">
-        <span className="welcome-cta-shine" aria-hidden="true" />
-        {hasReview ? <><Star size={22} className="fill-current" /> Rate &amp; Tip your technician</> : <><Heart size={22} className="fill-current" /> Tip your technician</>}
-        <ChevronRight size={22} className="welcome-cta-arrow" />
-      </button>
-      <button onClick={onPay} className="mt-3 w-full max-w-md py-4 rounded-2xl bg-white border border-brand-borderLight text-brand-charcoal text-base font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition">
-        <Wallet size={18} /> Pay for your service
-      </button>
+          <button onClick={onStart} className="welcome-cta mt-10 lg:mt-8 w-full max-w-md py-5 sm:py-6 rounded-2xl text-lg sm:text-2xl font-extrabold flex items-center justify-center gap-2.5">
+            <span className="welcome-cta-shine" aria-hidden="true" />
+            {hasReview ? <><Star size={22} className="fill-current" /> Rate &amp; Tip your technician</> : <><Heart size={22} className="fill-current" /> Tip your technician</>}
+            <ChevronRight size={22} className="welcome-cta-arrow" />
+          </button>
+          <button onClick={onPay} className="mt-3 w-full max-w-md py-4 rounded-2xl bg-white border border-brand-borderLight text-brand-charcoal text-base font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition">
+            <Wallet size={18} /> Pay for your service
+          </button>
+
+          {rateUrl && <RateOnPhone url={rateUrl} />}
+        </div>
+      </div>
     </div>
   );
 }
