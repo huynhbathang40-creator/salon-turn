@@ -14,6 +14,7 @@ import LockedScreen from "./LockedScreen.jsx";
 import { LOCK_ENABLED } from "./auth.js";
 import { useKiosk } from "./kiosk.js";
 import { newTipEntry, addTipEntry, setTipEntryStatus, todaysTips } from "./TipLog.jsx";
+import TelegramAlerts from "./TelegramAlerts.jsx";
 import { newReview, addReview, markHandled, openLowReviews, sendLowAlert, LOW, OwnerReviews, ReviewSettings, DEFAULT_GOOGLE_REVIEW_URL } from "./Reviews.jsx";
 import Avatar from "./Avatar.jsx";
 import AvatarEditor from "./AvatarEditor.jsx";
@@ -446,7 +447,10 @@ export default function App() {
               <X size={18} />
             </button>
             <h3 className="font-serif text-xl font-bold text-brand-charcoal flex items-center gap-2 mb-3"><Settings size={18} className="text-brand-gold" /> Review settings</h3>
-            <ReviewSettings settings={data.reviewSettings || {}} onSave={saveReviewSettings} />
+            <div className="space-y-3">
+              {store.mode === "cloud" && <TelegramAlerts />}
+              <ReviewSettings settings={data.reviewSettings || {}} onSave={saveReviewSettings} />
+            </div>
           </div>
         </div>
       )}
