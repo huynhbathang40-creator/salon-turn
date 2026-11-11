@@ -47,6 +47,7 @@ const callBtn = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-x
 export default function App() {
   const { isManager: canEdit } = useManager(); // false = view only (no PIN on this device)
   const kiosk = useKiosk(); // customer mode on this iPad: only Tips + Pay
+  // Tips & Reviews tools (reviews, tip history, review settings) are for manager AND owner mode
   const { isOwner } = useOwner(); // owner mode: +1 / under-$30 tools visible (separate owner PIN)
   const [store, setStore] = useState(null);
   const [data, setBoard] = useState(null);
@@ -143,16 +144,16 @@ export default function App() {
   };
   const setReviewHandled = (id, handled) => setData((p) => markHandled(p, id, handled));
   const deleteReview = (id) => {
-    if (!canEdit || !isOwner) return;
+    if (!canEdit) return;
     setData((p) => ({ ...p, reviews: (p.reviews || []).filter((r) => r.id !== id) }));
   };
   const resetReviews = () => {
-    if (!canEdit || !isOwner) return;
+    if (!canEdit) return;
     setData((p) => ({ ...p, reviews: [] }));
     notify("Reviews reset.");
   };
   async function saveReviewSettings(settings) {
-    if (!canEdit || !isOwner) throw new Error("Owner mode is needed to change this.");
+    if (!canEdit) throw new Error("Manager mode is needed to change this.");
     await store.update((p) => ({ ...p, reviewSettings: { ...(p.reviewSettings || {}), ...settings } }));
     notify("Review settings saved.");
   }
@@ -440,7 +441,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-charcoal flex flex-col justify-between">
-      {settingsOpen && canEdit && isOwner && (
+      {settingsOpen && canEdit && (
         <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSettingsOpen(false)}>
           <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 pb-safe max-h-[94vh] overflow-y-auto toast-in relative" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSettingsOpen(false)} className="absolute top-4 right-4 w-9 h-9 rounded-full bg-brand-warmIvory flex items-center justify-center" aria-label="Close">
@@ -472,7 +473,7 @@ export default function App() {
               <span>Business Date: <strong className="text-brand-charcoal font-semibold">{data.businessDate}</strong></span>
             </div>
             <ThemeButton onMessage={notify} />
-            {canEdit && isOwner && (
+            {canEdit && (
               <button
                 onClick={() => setSettingsOpen(true)}
                 className="w-10 h-10 rounded-xl bg-white border border-brand-borderLight flex items-center justify-center text-brand-charcoal shadow-sm"
@@ -492,14 +493,14 @@ export default function App() {
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-2.5">
           <div className="flex bg-brand-warmIvory border border-brand-borderLight rounded-xl p-1 max-w-xs sm:max-w-md">
-            {[["turns", "Turns"], ["tips", canEdit && isOwner ? "Tips & Reviews" : "Tips"], ["pay", "Pay"]].map(([key, label]) => (
+            {[["turns", "Turns"], ["tips", canEdit ? "Tips & Reviews" : "Tips"], ["pay", "Pay"]].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => goTab(key)}
                 className={`flex-1 px-2 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition flex items-center justify-center gap-1.5 ${tab === key ? "bg-white text-brand-charcoal shadow-sm" : "text-brand-softSlate"}`}
               >
                 {label}
-                {key === "tips" && canEdit && isOwner && lowReviews > 0 && (
+                {key === "tips" && canEdit && lowReviews > 0 && (
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[11px] font-bold flex items-center justify-center" aria-label={`${lowReviews} low ratings`}>
                     {lowReviews}★
                   </span>
@@ -523,10 +524,10 @@ export default function App() {
             onTipSent={canEdit ? logTipSent : null}
             tipChecks={todaysTips(data)}
             onTipStatus={setTipStatus}
-            tipHistory={isOwner ? data.tips || [] : null}
+            tipHistory={canEdit ? data.tips || [] : null}
             onResetTips={() => { setData((p) => ({ ...p, tips: [] })); notify("Tip history reset."); }}
             ownerExtra={
-              canEdit && isOwner ? (
+              canEdit ? (
                 <div className="pt-4">
                   <OwnerReviews reviews={data.reviews || []} settings={data.reviewSettings || {}} onHandled={setReviewHandled} onSaveSettings={saveReviewSettings} onReset={resetReviews} onDelete={deleteReview} />
                 </div>
